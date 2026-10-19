@@ -1,0 +1,55 @@
+DocuAgentS sample-set work
+==========================
+
+This repository is a fork of the Invoice Extraction Benchmark
+(https://github.com/DrewKraken/invoice-extraction-benchmark), pinned at commit
+3f8864d0d96103a279b5320000c69a71068edd14. The upstream files are kept unchanged
+except for the additions listed below.
+
+Upstream material (unchanged, upstream licences retained)
+---------------------------------------------------------
+
+* Code in `generator/` and `scorer/`: MIT. Copyright (c) 2026 InvoiceParser Pro.
+  The full text is in `LICENSE`, which this fork does not modify.
+* Documents and answer keys in `corpus/` and `examples/`: Creative Commons
+  Attribution 4.0 (CC BY 4.0). The full text is in `DATA_LICENSE`.
+  Credit: "InvoiceParser Pro, Invoice Extraction Benchmark v1",
+  https://github.com/DrewKraken/invoice-extraction-benchmark
+* The handwriting font (Windows Ink Free, `Inkfree.ttf`) is NOT redistributed
+  here and is not part of this repository. Upstream records that the published
+  handwritten documents were drawn with it.
+
+Additions in this fork (new material only)
+------------------------------------------
+
+* New code — `docuagents_gen/` and `tests/test_upstream_compat.py`:
+  MIT License, Copyright (c) 2026 DocuAgentS contributors.
+  This grant covers only the new files. It does not replace or extend the
+  upstream MIT grant, and it does not apply to `generator/` or `scorer/`.
+* New data — any sample documents, annotations, gold files or reports that
+  DocuAgentS adds in later tasks under its own `samples/`, `reports/` and
+  `gold/` directories: Creative Commons Attribution 4.0 (CC BY 4.0).
+  This grant covers only new DocuAgentS data. It does not apply to the
+  upstream `corpus/` or `examples/`, which stay under the upstream CC BY 4.0
+  terms and attribution above.
+
+Third-party dependencies
+------------------------
+
+`requirements-dev.txt` pins every direct dependency; `environment.lock.json`
+records the exact versions and their licences. Notable choices:
+
+* `pypdfium2` (Apache-2.0 AND BSD-3-Clause) renders PDF pages. PyMuPDF is
+  AGPL and is not used.
+* `pdfplumber` (MIT) extracts PDF text and tables.
+* `reportlab` (BSD-3-Clause) and `Pillow` (MIT-CMU/HPND) are the upstream
+  generator's pinned dependencies.
+
+No dependency is redistributed in this repository.
+
+Attribution required when reusing the data
+------------------------------------------
+
+Any reuse of the upstream documents, answer keys or any DocuAgentS sample data
+must keep the attribution above and state the licence (CC BY 4.0). Any reuse of
+the code must keep the MIT copyright notice.

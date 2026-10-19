@@ -1,0 +1,136 @@
+{
+ "schema": "docuagents/environment-lock/v1",
+ "task_id": "T03",
+ "scope": "DocuAgentS sample-set generation environment",
+ "baseline_date": "2026-03-04",
+ "os": {
+  "platform": "Windows-10-10.0.26100-SP0",
+  "version": "10.0.26100",
+  "machine": "AMD64",
+  "declared_support": "byte-identical reproduction is claimed for this Windows environment only; other platforms get semantic equality only"
+ },
+ "python": {
+  "version": "3.11.17",
+  "implementation": "CPython",
+  "managed_by": "uv 0.13.1 (venv .venv, not committed)",
+  "requires_python": ">=3.11,<3.12"
+ },
+ "packages": {
+  "reportlab": {
+   "version": "5.0.1",
+   "license": "BSD-3-Clause (reportlab 5.x)"
+  },
+  "pillow": {
+   "version": "12.3.0",
+   "license": "MIT-CMU (HPND)"
+  },
+  "python-dateutil": {
+   "version": "2.9.0.post0",
+   "license": "Apache-2.0 / BSD-3-Clause"
+  },
+  "pypdfium2": {
+   "version": "5.4.0",
+   "license": "Apache-2.0 AND BSD-3-Clause (PDFium BSD-3-Clause); AGPL alternative PyMuPDF is not used"
+  },
+  "pdfplumber": {
+   "version": "0.11.8",
+   "license": "MIT"
+  },
+  "pytest": {
+   "version": "8.4.2",
+   "license": "MIT"
+  },
+  "pdfminer-six": {
+   "version": "20251107",
+   "license": "MIT"
+  },
+  "cryptography": {
+   "version": "50.0.2",
+   "license": "Apache-2.0 OR BSD-3-Clause"
+  },
+  "cffi": {
+   "version": "2.1.1",
+   "license": "MIT"
+  },
+  "charset-normalizer": {
+   "version": "3.5.2",
+   "license": "MIT"
+  },
+  "colorama": {
+   "version": "0.4.6",
+   "license": "BSD-3-Clause"
+  },
+  "iniconfig": {
+   "version": "2.3.1",
+   "license": "MIT"
+  },
+  "packaging": {
+   "version": "26.3",
+   "license": "Apache-2.0 OR BSD-2-Clause"
+  },
+  "pluggy": {
+   "version": "1.7.0",
+   "license": "MIT"
+  },
+  "pygments": {
+   "version": "2.21.0",
+   "license": "BSD-2-Clause"
+  },
+  "pycparser": {
+   "version": "3.11",
+   "license": "BSD-3-Clause"
+  },
+  "six": {
+   "version": "1.17.0",
+   "license": "MIT"
+  }
+ },
+ "direct_requirements": {
+  "reportlab": "5.0.1",
+  "pillow": "12.3.0",
+  "python-dateutil": "2.9.0.post0",
+  "pypdfium2": "5.4.0",
+  "pdfplumber": "0.11.8",
+  "pytest": "8.4.2"
+ },
+ "fonts": {
+  "Inkfree.ttf": {
+   "reference": "%WINDIR%\\Fonts\\Inkfree.ttf",
+   "sha256": "c8ab96bc49ec1dc36936b5973fc143ca222c1a33ab27b87071a3bbc44d34ca9a",
+   "bytes": 198972,
+   "license": "not redistributed; used only on this host for the handwritten degradation grade"
+  }
+ },
+ "locale": {
+  "lc_ctype": [
+   "Chinese (Simplified)_China",
+   "936"
+  ],
+  "preferred_encoding": "cp936"
+ },
+ "timezone": "中国标准时间 +0800",
+ "library_versions_imported": {
+  "reportlab": "5.0.1",
+  "pillow": "12.3.0"
+ },
+ "licenses": {
+  "reportlab": "BSD-3-Clause (reportlab 5.x)",
+  "pillow": "MIT-CMU (HPND)",
+  "python-dateutil": "Apache-2.0 / BSD-3-Clause",
+  "pypdfium2": "Apache-2.0 AND BSD-3-Clause (PDFium BSD-3-Clause); AGPL alternative PyMuPDF is not used",
+  "pdfplumber": "MIT",
+  "pdfminer-six": "MIT",
+  "pytest": "MIT",
+  "cryptography": "Apache-2.0 OR BSD-3-Clause",
+  "cffi": "MIT",
+  "charset-normalizer": "MIT",
+  "colorama": "BSD-3-Clause",
+  "iniconfig": "MIT",
+  "packaging": "Apache-2.0 OR BSD-2-Clause",
+  "pluggy": "MIT",
+  "pygments": "BSD-2-Clause",
+  "pycparser": "BSD-3-Clause",
+  "six": "MIT"
+ },
+ "packages_source": "importlib.metadata.version() in .venv (Python 3.11.17)"
+}

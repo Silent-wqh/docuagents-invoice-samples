@@ -4,3 +4,12 @@ __pycache__/
 venv/
 scores.json
 scores.md
+
+# DocuAgentS additions (T03).  Reason: the probe and its tests create byte-code,
+# pytest caches and temporary renders.  environment.lock.json is committed on
+# purpose; the virtual environment is never committed.
+.pytest_cache/
+tmp/
+*.egg-info/
+build/
+dist/

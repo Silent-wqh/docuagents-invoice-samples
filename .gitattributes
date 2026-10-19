@@ -5,3 +5,6 @@
 *.jsonl text eol=lf
 *.py text eol=lf
 *.md text eol=lf
+
+# DocuAgentS T03 additions: keep line endings stable across Windows checkouts.
+NOTICE text eol=lf

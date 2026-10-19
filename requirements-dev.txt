@@ -1,0 +1,21 @@
+# DocuAgentS sample-set work: pinned generator environment.
+#
+# Upstream pins (requirements.txt at 3f8864d0d96103a279b5320000c69a71068edd14):
+#   reportlab==5.0.1
+#   pillow==12.3.0
+#   python-dateutil>=2.9.0   (scorer only; kept here so the upstream scorer imports)
+#
+# DocuAgentS additions (page rendering, text extraction, probe tests):
+#   pypdfium2  -- PDF page rasterising (BSD-3-Clause / Apache-2.0); PyMuPDF is AGPL and is not used
+#   pdfplumber -- PDF text and table extraction (MIT)
+#   pytest     -- probe test runner (MIT)
+#
+# Byte-for-byte reproduction is only claimed for the locked Windows environment
+# recorded in environment.lock.json.
+
+reportlab==5.0.1
+pillow==12.3.0
+python-dateutil==2.9.0.post0
+pypdfium2==5.4.0
+pdfplumber==0.11.8
+pytest==8.4.2
