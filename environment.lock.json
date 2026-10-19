@@ -109,6 +109,14 @@
   "preferred_encoding": "cp936"
  },
  "timezone": "中国标准时间 +0800",
+ "corpus_reproduction": {
+  "published_documents": 181,
+  "probe_default_sample": 10,
+  "default_coverage": "10/181",
+  "coverage_note": "F15 checks 10 of the 181 published corpus documents by default; the sample is not a full-corpus guarantee",
+  "full_check_command": "python -m docuagents_gen.probe --check-all",
+  "full_check_report": "reports/upstream_compatibility.full.json"
+ },
  "library_versions_imported": {
   "reportlab": "5.0.1",
   "pillow": "12.3.0"

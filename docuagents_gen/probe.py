@@ -352,7 +352,8 @@ class Check:
 
 
 class Prober:
-    def __init__(self) -> None:
+    def __init__(self, check_all: bool = False) -> None:
+        self.check_all = check_all
         self.specs = probe_specs()
         self.cache: Dict[str, Tuple[bytes, str, int, Dict]] = {}
         self.checks: Dict[str, Check] = {}
@@ -404,6 +405,16 @@ def f01_defaults(p: Prober) -> Check:
         c.bad(f"US default taxes are {[t.label for t in us.taxes]!r}")
     if us.date_style in CORPUS_DATE_STYLES["US"]:
         c.ok("the US default date style is drawn from DATE_STYLES['US']")
+        c.difference(
+            "The US default date style is random between US and USLONG",
+            "medium",
+            "DATE_STYLES['US'] is ['US', 'USLONG'], and Factory.invoice() picks one at random; "
+            "the same 2026-03-04 prints as 03/04/2026 or March 4, 2026. A US date can also be "
+            "ambiguous when Factory.ambiguous_issue() is used.",
+            ["A-D 原件（正常样本日期）"],
+            "pass date_style='USLONG' explicitly and print an unambiguous month name; never rely "
+            "on Factory's default US date style",
+        )
     else:
         c.bad(f"{us.date_style!r} is not in DATE_STYLES['US']")
 
@@ -1325,20 +1336,33 @@ def f15_reproducible(p: Prober) -> Check:
     else:
         c.observed["hand_font_warning"] = f"{font_name} is not Inkfree.ttf"
 
-    # Published corpus: regenerate 10 documents spanning both renderers.
+    # Published corpus: regenerate the sample (default) or every document (--check-all).
     manifest = json.loads((ROOT / "corpus" / "v1" / "manifest.json").read_text(encoding="utf-8"))
     entries = {d["doc_id"]: d for d in manifest["documents"]}
     sample_ids = ["clean-us-clean-simple", "clean-gb-serif", "currency-dual-usd-zar-1",
                   "multipage-3p-na-3", "hard-total-inflated", "photo-perspective-mild",
                   "photo-combo-severe", "scan-fax-moderate", "handwritten-invoice-book-neat-1",
                   "hard-multiple-invoices-3"]
+    if p.check_all:
+        check_ids = sorted(entries)
+    else:
+        check_ids = sample_ids
     matches = {}
-    for doc_id in sample_ids:
+    for doc_id in check_ids:
         data = rendered(by_id[doc_id])[0]
         matches[doc_id] = hashlib.sha256(data).hexdigest() == entries[doc_id]["sha256"]
+    total_published = len(entries)
+    c.observed["published_corpus_check"] = {
+        "mode": "all" if p.check_all else "sample",
+        "checked": len(matches),
+        "published_total": total_published,
+        "coverage": f"{len(matches)}/{total_published}",
+        "sample_ids": None if p.check_all else sample_ids,
+    }
     c.observed["published_corpus_matches"] = matches
     if all(matches.values()):
-        c.ok(f"{len(matches)} of {len(matches)} published documents reproduce byte-identically")
+        c.ok(f"{len(matches)} of {len(matches)} checked documents reproduce byte-identically "
+             f"(coverage {len(matches)}/{total_published})")
     else:
         c.bad(f"published documents differ: {[k for k, v in matches.items() if not v]}")
 
@@ -1347,6 +1371,9 @@ def f15_reproducible(p: Prober) -> Check:
     c.affects = ["全部样本的字节级复现声明"]
     c.adaptation = ("字节复现只对同一锁定环境声明；其他 OS 只要求语义一致，"
                     "并把差异写入报告。")
+    if not p.check_all:
+        c.adaptation += (f" 默认抽样 {len(check_ids)}/{total_published} 份；"
+                         "全量核对用 `python -m docuagents_gen.probe --check-all`。")
     return c
 
 
@@ -1484,6 +1511,16 @@ def f17_tolerance(p: Prober) -> Check:
         c.bad("the same inconsistent total passes without should_flag")
 
     # The upstream scorer is only an extra check for this project.
+    c.difference(
+        "Upstream tolerances and should_flag differ from this project's strict rules",
+        "medium",
+        "scorer/score.py accepts a difference below one cent (a float 0.005 slips through) and "
+        "reports a separate +-1 cent band; DocSpec.validate() allows 0.005 on totals and 0.011 on "
+        "a line product, and lets any inconsistent document through when should_flag=True.",
+        ["本项目 gold 校验", "C 类不一致样本的 should_flag"],
+        "use the upstream scorer and validate() only as an extra check; this project validates "
+        "the printed decimal values against its own contract, independently",
+    )
     c.affects = ["本项目 gold 校验", "C 类不一致样本的 should_flag"]
     c.adaptation = ("上游 scorer 的容差与 should_flag 只作为额外检查；"
                     "本项目按原件十进制值与本项目契约独立校验。")
@@ -1589,8 +1626,8 @@ FACT_TITLES = {
 }
 
 
-def run_probe(facts: Optional[Sequence[str]] = None) -> Dict[str, Any]:
-    prober = Prober()
+def run_probe(facts: Optional[Sequence[str]] = None, check_all: bool = False) -> Dict[str, Any]:
+    prober = Prober(check_all=check_all)
     selected = list(facts) if facts else list(FACT_FUNCS)
     for fact in selected:
         FACT_FUNCS[fact](prober)
@@ -1615,6 +1652,7 @@ def run_probe(facts: Optional[Sequence[str]] = None) -> Dict[str, Any]:
         },
         "generated_by": "python -m docuagents_gen.probe",
         "offline": True,
+        "check_all": check_all,
         "baseline_date": BASELINE_DATE.isoformat(),
         "environment": environment_snapshot(),
         "summary": {**summary, "differences": len(differences)},
@@ -1626,21 +1664,28 @@ def run_probe(facts: Optional[Sequence[str]] = None) -> Dict[str, Any]:
     }
 
 
-def write_report(report: Optional[Dict[str, Any]] = None) -> Path:
+def write_report(report: Optional[Dict[str, Any]] = None, path: Optional[Path] = None) -> Path:
     report = report or run_probe()
-    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_PATH.write_text(json.dumps(report, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
-    return REPORT_PATH
+    path = path or REPORT_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    return path
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
+    check_all = "--check-all" in args
     facts = [a for a in args if re.fullmatch(r"F\d{1,2}", a)] or None
-    report = run_probe(facts)
-    path = write_report(report)
+    report = run_probe(facts, check_all=check_all)
+    if check_all:
+        path = write_report(report, ROOT / "reports" / "upstream_compatibility.full.json")
+        print("note: --check-all writes reports/upstream_compatibility.full.json; "
+              "reports/upstream_compatibility.json keeps the default sample")
+    else:
+        path = write_report(report)
     print(f"wrote {path}")
-    diffs = [{"fact": c["fact"], **d} for c in report["facts"] for d in c["differences"]]
-    print(json.dumps({**report["summary"], "differences": len(diffs)}))
+    diffs = report["differences"]
+    print(json.dumps(report["summary"]))
     for item in report["blocked_or_failed"]:
         print(f"  {item['fact']} {item['status']}: {item['failure']}")
     for d in diffs:

@@ -8,6 +8,7 @@
  },
  "generated_by": "python -m docuagents_gen.probe",
  "offline": true,
+ "check_all": false,
  "baseline_date": "2026-03-04",
  "environment": {
   "os": "Windows-10-10.0.26100-SP0",
@@ -57,10 +58,20 @@
   "pass": 17,
   "fail": 0,
   "blocked": 0,
-  "differences": 3
+  "differences": 5
  },
  "blocked_or_failed": [],
  "differences": [
+  {
+   "fact": "F1",
+   "title": "The US default date style is random between US and USLONG",
+   "severity": "medium",
+   "detail": "DATE_STYLES['US'] is ['US', 'USLONG'], and Factory.invoice() picks one at random; the same 2026-03-04 prints as 03/04/2026 or March 4, 2026. A US date can also be ambiguous when Factory.ambiguous_issue() is used.",
+   "affected_sample_constructions": [
+    "A-D 原件（正常样本日期）"
+   ],
+   "adaptation": "pass date_style='USLONG' explicitly and print an unambiguous month name; never rely on Factory's default US date style"
+  },
   {
    "fact": "F2",
    "title": "Printed qty x unit price can miss the printed amount by one cent",
@@ -91,6 +102,17 @@
     "A-D 原件（日期、数量、单价、金额精度）"
    ],
    "adaptation": "gold keeps the printed amount; recomputation allows a 1-cent delta"
+  },
+  {
+   "fact": "F17",
+   "title": "Upstream tolerances and should_flag differ from this project's strict rules",
+   "severity": "medium",
+   "detail": "scorer/score.py accepts a difference below one cent (a float 0.005 slips through) and reports a separate +-1 cent band; DocSpec.validate() allows 0.005 on totals and 0.011 on a line product, and lets any inconsistent document through when should_flag=True.",
+   "affected_sample_constructions": [
+    "本项目 gold 校验",
+    "C 类不一致样本的 should_flag"
+   ],
+   "adaptation": "use the upstream scorer and validate() only as an extra check; this project validates the printed decimal values against its own contract, independently"
   }
  ],
  "facts": [
@@ -150,7 +172,17 @@
     "PASS: show_currency_header prints 'Currency: USD'"
    ],
    "failure": null,
-   "differences": [],
+   "differences": [
+    {
+     "title": "The US default date style is random between US and USLONG",
+     "severity": "medium",
+     "detail": "DATE_STYLES['US'] is ['US', 'USLONG'], and Factory.invoice() picks one at random; the same 2026-03-04 prints as 03/04/2026 or March 4, 2026. A US date can also be ambiguous when Factory.ambiguous_issue() is used.",
+     "affected_sample_constructions": [
+      "A-D 原件（正常样本日期）"
+     ],
+     "adaptation": "pass date_style='USLONG' explicitly and print an unambiguous month name; never rely on Factory's default US date style"
+    }
+   ],
    "affected_sample_constructions": [
     "A-D 原件（正常样本）",
     "所有 US 默认发票"
@@ -1351,6 +1383,24 @@
      "sha256_16": "c8ab96bc49ec1dc3",
      "path_is_absolute": true
     },
+    "published_corpus_check": {
+     "mode": "sample",
+     "checked": 10,
+     "published_total": 181,
+     "coverage": "10/181",
+     "sample_ids": [
+      "clean-us-clean-simple",
+      "clean-gb-serif",
+      "currency-dual-usd-zar-1",
+      "multipage-3p-na-3",
+      "hard-total-inflated",
+      "photo-perspective-mild",
+      "photo-combo-severe",
+      "scan-fax-moderate",
+      "handwritten-invoice-book-neat-1",
+      "hard-multiple-invoices-3"
+     ]
+    },
     "published_corpus_matches": {
      "clean-us-clean-simple": true,
      "clean-gb-serif": true,
@@ -1418,14 +1468,14 @@
     "PASS: rendering in reverse order does not change any file",
     "PASS: rendering a changed document does not move the original",
     "PASS: the handwriting font is Ink Free, as the published corpus used",
-    "PASS: 10 of 10 published documents reproduce byte-identically"
+    "PASS: 10 of 10 checked documents reproduce byte-identically (coverage 10/181)"
    ],
    "failure": null,
    "differences": [],
    "affected_sample_constructions": [
     "全部样本的字节级复现声明"
    ],
-   "adaptation": "字节复现只对同一锁定环境声明；其他 OS 只要求语义一致，并把差异写入报告。",
+   "adaptation": "字节复现只对同一锁定环境声明；其他 OS 只要求语义一致，并把差异写入报告。 默认抽样 10/181 份；全量核对用 `python -m docuagents_gen.probe --check-all`。",
    "title": "A fixed seed does not by itself guarantee identical bytes everywhere"
   },
   {
@@ -1557,7 +1607,18 @@
     "PASS: should_flag=False rejects the same inconsistent total"
    ],
    "failure": null,
-   "differences": [],
+   "differences": [
+    {
+     "title": "Upstream tolerances and should_flag differ from this project's strict rules",
+     "severity": "medium",
+     "detail": "scorer/score.py accepts a difference below one cent (a float 0.005 slips through) and reports a separate +-1 cent band; DocSpec.validate() allows 0.005 on totals and 0.011 on a line product, and lets any inconsistent document through when should_flag=True.",
+     "affected_sample_constructions": [
+      "本项目 gold 校验",
+      "C 类不一致样本的 should_flag"
+     ],
+     "adaptation": "use the upstream scorer and validate() only as an extra check; this project validates the printed decimal values against its own contract, independently"
+    }
+   ],
    "affected_sample_constructions": [
     "本项目 gold 校验",
     "C 类不一致样本的 should_flag"

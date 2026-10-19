@@ -1,0 +1,1790 @@
+{
+ "schema": "docuagents/upstream-compatibility/v1",
+ "task_id": "T03",
+ "upstream": {
+  "repository": "https://github.com/DrewKraken/invoice-extraction-benchmark",
+  "fork": "https://github.com/Silent-wqh/docuagents-invoice-samples",
+  "commit": "3f8864d0d96103a279b5320000c69a71068edd14"
+ },
+ "generated_by": "python -m docuagents_gen.probe",
+ "offline": true,
+ "check_all": true,
+ "baseline_date": "2026-03-04",
+ "environment": {
+  "os": "Windows-10-10.0.26100-SP0",
+  "os_version": "10.0.26100",
+  "machine": "AMD64",
+  "python": "3.11.17",
+  "python_implementation": "CPython",
+  "locale": [
+   "Chinese (Simplified)_China",
+   "936"
+  ],
+  "encoding": "utf-8",
+  "timezone": "中国标准时间 +0800",
+  "baseline_date": "2026-03-04",
+  "packages": {
+   "reportlab": "5.0.1",
+   "pillow": "12.3.0",
+   "python-dateutil": "2.9.0.post0",
+   "pypdfium2": "5.4.0",
+   "pdfplumber": "0.11.8",
+   "pytest": "8.4.2",
+   "pdfminer-six": "20251107",
+   "cryptography": "50.0.2",
+   "cffi": "2.1.1",
+   "charset-normalizer": "3.5.2",
+   "colorama": "0.4.6",
+   "iniconfig": "2.3.1",
+   "packaging": "26.3",
+   "pluggy": "1.7.0",
+   "pygments": "2.21.0",
+   "pycparser": "3.11",
+   "six": "1.17.0"
+  },
+  "fonts": {
+   "Inkfree.ttf": {
+    "referenced_as": "%WINDIR%\\Fonts\\Inkfree.ttf",
+    "sha256": "c8ab96bc49ec1dc36936b5973fc143ca222c1a33ab27b87071a3bbc44d34ca9a",
+    "bytes": 198972
+   }
+  },
+  "library_versions_imported": {
+   "reportlab": "5.0.1",
+   "pillow": "12.3.0"
+  }
+ },
+ "summary": {
+  "pass": 17,
+  "fail": 0,
+  "blocked": 0,
+  "differences": 5
+ },
+ "blocked_or_failed": [],
+ "differences": [
+  {
+   "fact": "F1",
+   "title": "The US default date style is random between US and USLONG",
+   "severity": "medium",
+   "detail": "DATE_STYLES['US'] is ['US', 'USLONG'], and Factory.invoice() picks one at random; the same 2026-03-04 prints as 03/04/2026 or March 4, 2026. A US date can also be ambiguous when Factory.ambiguous_issue() is used.",
+   "affected_sample_constructions": [
+    "A-D 原件（正常样本日期）"
+   ],
+   "adaptation": "pass date_style='USLONG' explicitly and print an unambiguous month name; never rely on Factory's default US date style"
+  },
+  {
+   "fact": "F2",
+   "title": "Printed qty x unit price can miss the printed amount by one cent",
+   "severity": "medium",
+   "detail": "goods_lines() rounds the unit price to the cent, then multiplies the rounded price and rounds again; 0.125 x 3 prints 0.13 / 3 / 0.38.",
+   "affected_sample_constructions": [
+    "A-D 原件（逐行 qty / unit price / amount）",
+    "C 类行级矛盾（金额重算）"
+   ],
+   "adaptation": "compare with a 1-cent tolerance; never rebuild the amount from the printed unit price alone"
+  },
+  {
+   "fact": "F5",
+   "title": "US tax_rate=0 is silently replaced by a random rate",
+   "severity": "medium",
+   "detail": "Factory.vat() evaluates `rate or self.pick([...])`; 0.0 is falsy, so an explicit zero rate for country='US' becomes 6.00%, 6.25%, 7.00%, 8.25% or 8.875%.",
+   "affected_sample_constructions": [
+    "B 类明确零税额样本"
+   ],
+   "adaptation": "never express a zero rate through Factory.invoice(tax_rate=0); pass an explicit Tax('Sales Tax (0%)', 0.0, 0.0) and set taxes=(...)"
+  },
+  {
+   "fact": "F14",
+   "title": "Printed precision is 2 decimals for prices and amounts, 2-3 for quantities",
+   "severity": "low",
+   "detail": "A quantity prints with two decimals when it is a multiple of 0.01, three otherwise; unit prices and amounts print two. Rebuilding an amount from the printed unit price can be one cent off.",
+   "affected_sample_constructions": [
+    "A-D 原件（日期、数量、单价、金额精度）"
+   ],
+   "adaptation": "gold keeps the printed amount; recomputation allows a 1-cent delta"
+  },
+  {
+   "fact": "F17",
+   "title": "Upstream tolerances and should_flag differ from this project's strict rules",
+   "severity": "medium",
+   "detail": "scorer/score.py accepts a difference below one cent (a float 0.005 slips through) and reports a separate +-1 cent band; DocSpec.validate() allows 0.005 on totals and 0.011 on a line product, and lets any inconsistent document through when should_flag=True.",
+   "affected_sample_constructions": [
+    "本项目 gold 校验",
+    "C 类不一致样本的 should_flag"
+   ],
+   "adaptation": "use the upstream scorer and validate() only as an extra check; this project validates the printed decimal values against its own contract, independently"
+  }
+ ],
+ "facts": [
+  {
+   "fact": "F1",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/corpus_v1.py: Factory.invoice, Factory.vat, DATE_STYLES",
+   "inputs": {
+    "factory_seed": 11,
+    "call": "Factory.invoice(country=\"US\")",
+    "date_used": "spec.issue_date",
+    "amount_sentinel": "kw lines/taxes override"
+   },
+   "observed": {
+    "currency": "USD",
+    "date_style": "USLONG",
+    "date_style_choices": [
+     "US",
+     "USLONG"
+    ],
+    "tax_labels": [
+     "Sales Tax (6%)"
+    ],
+    "money_style": "MoneyStyle(symbol='$', position='prefix', space=False, negative='minus', numbers=NumberStyle(thousands=',', decimal='.'))",
+    "normal_rendered": {
+     "ext": "pdf",
+     "pages": 1,
+     "sha256_16": "c6915b9204fc8824"
+    },
+    "normal_date_line": "Date: March 4, 2026",
+    "normal_currency_line": "Currency: USD",
+    "normal_table_rows": [
+     [
+      "Widget A",
+      "4",
+      "25.00",
+      "100.00"
+     ],
+     [
+      "Widget B",
+      "2",
+      "31.25",
+      "62.50"
+     ]
+    ],
+    "default_us_date_line": "Tel (89) 555-0812 | invoices@summitengineerings.com Date: September 23, 2025"
+   },
+   "assertions": [
+    "PASS: country='US' gives currency USD",
+    "PASS: US date style is 'USLONG' (%B %d, %Y)",
+    "PASS: US default tax is 'Sales Tax (6%)' with rate 0.06",
+    "PASS: the US default date style is drawn from DATE_STYLES['US']",
+    "PASS: kw number override is printed",
+    "PASS: explicit date 2026-03-04 prints as 'March 4, 2026' (USLONG)",
+    "PASS: kw lines override is printed unchanged in the table",
+    "PASS: show_currency_header prints 'Currency: USD'"
+   ],
+   "failure": null,
+   "differences": [
+    {
+     "title": "The US default date style is random between US and USLONG",
+     "severity": "medium",
+     "detail": "DATE_STYLES['US'] is ['US', 'USLONG'], and Factory.invoice() picks one at random; the same 2026-03-04 prints as 03/04/2026 or March 4, 2026. A US date can also be ambiguous when Factory.ambiguous_issue() is used.",
+     "affected_sample_constructions": [
+      "A-D 原件（正常样本日期）"
+     ],
+     "adaptation": "pass date_style='USLONG' explicitly and print an unambiguous month name; never rely on Factory's default US date style"
+    }
+   ],
+   "affected_sample_constructions": [
+    "A-D 原件（正常样本）",
+    "所有 US 默认发票"
+   ],
+   "adaptation": "显式传 date_style='USLONG'、number、lines 与 taxes；不依赖 Factory 默认的随机日期格式。",
+   "title": "US defaults: USD, US/USLONG dates, US sales tax; keyword overrides"
+  },
+  {
+   "fact": "F2",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/corpus_v1.py: Factory.goods_lines; generator/spec.py: money()",
+   "inputs": {
+    "factory_seed": 23,
+    "call": "Factory.goods_lines('supply', 3)"
+   },
+   "observed": {
+    "lines": [
+     {
+      "description": "Brake pads, trailer axle set",
+      "qty": 3,
+      "unit_price": 1477.92,
+      "amount": 4433.76,
+      "decimal_qty_x_price": "4433.76"
+     },
+     {
+      "description": "Pallet strapping kit",
+      "qty": 4,
+      "unit_price": 440.23,
+      "amount": 1760.92,
+      "decimal_qty_x_price": "1760.92"
+     },
+     {
+      "description": "Toner cartridge, black, high yield",
+      "qty": 1,
+      "unit_price": 737.9,
+      "amount": 737.9,
+      "decimal_qty_x_price": "737.90"
+     }
+    ],
+    "half_cent_printed_row": [
+     [
+      "Scale line",
+      "3",
+      "0.13",
+      "0.38"
+     ]
+    ],
+    "half_cent_totals": [
+     "Subtotal $0.38",
+     "TOTAL $0.40"
+    ],
+    "decimal_recompute": "3 x 0.13 = 0.39, printed amount 0.38"
+   },
+   "assertions": [
+    "PASS: 'Brake pads, trailer axle set': qty x unit_price = amount (3 x 1477.92 = 4433.76)",
+    "PASS: 'Pallet strapping kit': qty x unit_price = amount (4 x 440.23 = 1760.92)",
+    "PASS: 'Toner cartridge, black, high yield': qty x unit_price = amount (1 x 737.9 = 737.9)",
+    "PASS: printed qty/unit/amount are 3 / 0.13 / 0.38",
+    "PASS: the printed rows do not multiply exactly (0.13 x 3 = 0.39 vs printed 0.38)"
+   ],
+   "failure": null,
+   "differences": [
+    {
+     "title": "Printed qty x unit price can miss the printed amount by one cent",
+     "severity": "medium",
+     "detail": "goods_lines() rounds the unit price to the cent, then multiplies the rounded price and rounds again; 0.125 x 3 prints 0.13 / 3 / 0.38.",
+     "affected_sample_constructions": [
+      "A-D 原件（逐行 qty / unit price / amount）",
+      "C 类行级矛盾（金额重算）"
+     ],
+     "adaptation": "compare with a 1-cent tolerance; never rebuild the amount from the printed unit price alone"
+    }
+   ],
+   "affected_sample_constructions": [
+    "A-D 原件（逐行 qty / unit price / amount）",
+    "C 类行级矛盾（金额重算）"
+   ],
+   "adaptation": "gold 的 amount 取印刷值并用 Decimal 重算 qty x unit_price 时，允许 1 分差异；内部 float 值不得当作金额真值。",
+   "title": "goods_lines() supplies qty, unit_price and amount = money(qty x unit_price)"
+  },
+  {
+   "fact": "F3",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/layout.py: _Builder.columns, _Builder.table",
+   "inputs": {
+    "spec": "probe-normal",
+    "columns": "std"
+   },
+   "observed": {
+    "headers": [
+     "Description",
+     "Qty",
+     "Unit Price",
+     "Amount"
+    ],
+    "rows": [
+     [
+      "Widget A",
+      "4",
+      "25.00",
+      "100.00"
+     ],
+     [
+      "Widget B",
+      "2",
+      "31.25",
+      "62.50"
+     ]
+    ],
+    "page_text_line": [
+     "Description Qty Unit Price Amount"
+    ],
+    "wrapped_description": [
+     "Wide format plotter paper roll 914 mm x 50 m, 90 gsm, boxed"
+    ],
+    "amount_op_align": [
+     [
+      "100.00",
+      "right"
+     ],
+     [
+      "62.50",
+      "right"
+     ]
+    ]
+   },
+   "assertions": [
+    "PASS: std column set prints Description / Qty / Unit Price / Amount",
+    "PASS: every row has four cells",
+    "PASS: a long description is wrapped across lines and every word is printed",
+    "PASS: amount cells are right-aligned"
+   ],
+   "failure": null,
+   "differences": [],
+   "affected_sample_constructions": [
+    "A-D 原件（列绑定规则）",
+    "表格标注与 gold 行匹配"
+   ],
+   "adaptation": "列名以 'Description / Qty / Unit Price / Amount' 为契约键；列名变化时更新绑定规则。",
+   "title": "The std column set prints Description / Qty / Unit Price / Amount"
+  },
+  {
+   "fact": "F4",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/layout.py: _Builder.totals_rows, totals, meta_rows",
+   "inputs": {
+    "specs": [
+     "probe-normal",
+     "probe-no-tax",
+     "probe-zero-tax"
+    ]
+   },
+   "observed": {
+    "normal_total_rows": [
+     "Subtotal $162.50",
+     "Sales Tax (6%) $9.75",
+     "TOTAL $172.25"
+    ],
+    "no_tax_rows": [
+     "Probe Supply LLC INVOICE",
+     "1 Probe Way",
+     "Columbus, OH 43201 Invoice #: PROBE-0001",
+     "Date: March 4, 2026",
+     "Due Date: April 3, 2026",
+     "Terms: 30 days",
+     "Currency: USD",
+     "BILL TO",
+     "Probe Buyer Inc",
+     "1 Probe Way",
+     "Columbus, OH 43201",
+     "Description Qty Unit Price Amount",
+     "Consulting hour 5 100.00 500.00",
+     "Subtotal $500.00",
+     "TOTAL $500.00",
+     "Page 1 of 1"
+    ],
+    "zero_tax_rows": [
+     "Subtotal $500.00",
+     "Sales Tax (0%) $0.00",
+     "TOTAL $500.00"
+    ],
+    "no_tax_pdf_tax_rows": [],
+    "no_tax_total_row": [
+     "TOTAL $500.00"
+    ]
+   },
+   "assertions": [
+    "PASS: the tax row is printed when taxes is non-empty",
+    "PASS: taxes=() prints no tax row and no other tax wording",
+    "PASS: an explicit zero Tax prints $0.00",
+    "PASS: the rendered PDF of the no-tax invoice has no tax wording",
+    "PASS: no-tax total is the line sum, $500.00"
+   ],
+   "failure": null,
+   "differences": [],
+   "affected_sample_constructions": [
+    "B 类（无税样本）",
+    "A 类正常样本总额区"
+   ],
+   "adaptation": "无税样本必须同时检查票面无 tax/VAT/Sales 字样，不能只检查 totals_rows。",
+   "title": "The totals block walks spec.taxes; taxes=() prints no tax row"
+  },
+  {
+   "fact": "F5",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/corpus_v1.py: Factory.vat (rate or pick(...)), Factory.invoice(tax_rate=...)",
+   "inputs": {
+    "calls": [
+     "Factory.invoice(country='US', tax_rate=0)",
+     "Factory.invoice(country='US')",
+     "Factory.invoice(country='ZA', tax_rate=0)"
+    ]
+   },
+   "observed": {
+    "us_tax_rate_0": [
+     [
+      "Sales Tax (7%)",
+      1325.34,
+      0.07
+     ]
+    ],
+    "us_default": [
+     [
+      "Sales Tax (6.25%)",
+      1296.24,
+      0.0625
+     ]
+    ],
+    "za_tax_rate_0": [
+     [
+      "VAT 0%",
+      0.0,
+      0
+     ]
+    ],
+    "explicit_tax_printed_rows": [
+     "Subtotal $500.00",
+     "Sales Tax (0%) $0.00",
+     "TOTAL $500.00"
+    ],
+    "zero_tax_pdf_line": "Sales Tax (0%) $0.00"
+   },
+   "assertions": [
+    "PASS: default US tax rate is drawn from the random list (0.0625)",
+    "PASS: tax_rate=0 for US is replaced by the random rate 0.07, as F5 warns",
+    "PASS: country='ZA' keeps tax_rate=0 (VAT 0%)",
+    "PASS: passing Tax('Sales Tax (0%)', 0.0, 0.0) prints $0.00"
+   ],
+   "failure": null,
+   "differences": [
+    {
+     "title": "US tax_rate=0 is silently replaced by a random rate",
+     "severity": "medium",
+     "detail": "Factory.vat() evaluates `rate or self.pick([...])`; 0.0 is falsy, so an explicit zero rate for country='US' becomes 6.00%, 6.25%, 7.00%, 8.25% or 8.875%.",
+     "affected_sample_constructions": [
+      "B 类明确零税额样本"
+     ],
+     "adaptation": "never express a zero rate through Factory.invoice(tax_rate=0); pass an explicit Tax('Sales Tax (0%)', 0.0, 0.0) and set taxes=(...)"
+    }
+   ],
+   "affected_sample_constructions": [
+    "B 类明确零税额样本"
+   ],
+   "adaptation": "零税额一律直接传入显式 Tax(label, 0.0, 0.0) 并设置 taxes=(...)；不要通过 Factory 的 tax_rate=0 表达。",
+   "title": "US vat() uses 'rate or pick(...)' so tax_rate=0 can be replaced"
+  },
+  {
+   "fact": "F6",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/spec.py: DocSpec.validate; generator/corpus_v1.py: _validate",
+   "inputs": {
+    "specs": [
+     "probe-line-conflict",
+     "probe-overrides",
+     "published hard-*"
+    ]
+   },
+   "observed": {
+    "line_conflict_validate_error": "probe-line-conflict: line 'Mismatched line' qty x price != amount",
+    "line_product_validate_error": "probe-line-product-only: line 'Mismatched line' qty x price != amount",
+    "line_conflict_printed_row": [
+     [
+      "Mismatched line",
+      "2",
+      "10.00",
+      "25.00"
+     ]
+    ],
+    "line_conflict_is_rendered": true,
+    "overrides_validate_error": null,
+    "overrides_no_flag_validate_error": "probe-overrides: subtotal 100.0/162.5 or total 120.0/172.25 does not add up",
+    "published_hard_flagged": [
+     "hard-lines-vs-subtotal",
+     "hard-total-inflated",
+     "hard-total-small-residual",
+     "hard-wrong-vat-amount"
+    ],
+    "wrong_vat_exempt": [
+     "hard-wrong-vat-amount"
+    ]
+   },
+   "assertions": [
+    "PASS: validate() rejects a spec whose printed figures do not add up",
+    "PASS: validate() rejects a line whose qty x price != amount even when the totals add up",
+    "PASS: the contradictory line still renders (2 x 10.00 printed beside 25.00)",
+    "PASS: validate() accepts printed subtotal/total overrides when should_flag=True",
+    "PASS: validate() rejects inconsistent arithmetic without should_flag",
+    "PASS: every published hard document except the wrong-VAT one passes validate()"
+   ],
+   "failure": null,
+   "differences": [],
+   "affected_sample_constructions": [
+    "C 类行级矛盾样本",
+    "所有覆盖小计/总额的样本"
+   ],
+   "adaptation": "C 类样本由本项目自己的严格校验器检查，不用上游 validate() 作为唯一闸门；上游 validate() 只作为额外检查，并用 should_flag=True 放行已知不一致。",
+   "title": "DocSpec.validate() checks line products and arithmetic"
+  },
+  {
+   "fact": "F7",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/spec.py: subtotal/total properties, expected(); generator/layout.py: totals_rows",
+   "inputs": {
+    "spec": "probe-overrides",
+    "subtotal_printed": 100.0,
+    "total_printed": 120.0
+   },
+   "observed": {
+    "computed_line_sum": 162.5,
+    "subtotal": 100.0,
+    "total": 120.0,
+    "computed_total": 172.25,
+    "expected_subtotal": 100.0,
+    "expected_total": 120.0,
+    "printed_totals": [
+     "Subtotal $100.00",
+     "TOTAL $120.00"
+    ],
+    "pdf_subtotal": "Subtotal $100.00",
+    "pdf_total": "TOTAL $120.00"
+   },
+   "assertions": [
+    "PASS: the printed subtotal is the override $100.00",
+    "PASS: the printed total is the override $120.00",
+    "PASS: expected() returns the overrides, not the computed values",
+    "PASS: the rendered PDF prints the override subtotal"
+   ],
+   "failure": null,
+   "differences": [],
+   "affected_sample_constructions": [
+    "C 类覆盖小计/总额样本",
+    "gold 的 subtotal / total"
+   ],
+   "adaptation": "覆盖样本的 gold 必须取 subtotal_printed / total_printed，并与票面字符串逐字一致。",
+   "title": "subtotal_printed / total_printed override the printed values"
+  },
+  {
+   "fact": "F8",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/spec.py: Expected, ExpectedLine, DocSpec.expected",
+   "inputs": {
+    "spec": "a one-line, no-tax invoice",
+    "call": "DocSpec.expected().as_dict()"
+   },
+   "observed": {
+    "expected_dict": {
+     "vendor_name": "Probe Supply LLC",
+     "invoice_number": "PROBE-0001",
+     "invoice_date": "2026-03-04",
+     "due_date": "2026-04-03",
+     "currency": "USD",
+     "subtotal": 250.0,
+     "tax": 0.0,
+     "total": 250.0,
+     "document_type": "invoice",
+     "lines": [
+      {
+       "description": "Service",
+       "amount": 250.0,
+       "alt_amounts": []
+      }
+     ],
+     "should_flag": false,
+     "references": [],
+     "scored": [
+      "vendor_name",
+      "invoice_number",
+      "invoice_date",
+      "currency",
+      "subtotal",
+      "tax",
+      "total",
+      "document_type",
+      "line_items",
+      "flag",
+      "due_date"
+     ],
+     "secondary": null,
+     "notes": ""
+    },
+    "line_keys": [
+     "description",
+     "amount",
+     "alt_amounts"
+    ],
+    "expected_tax": 0.0,
+    "printed_rows_with_tax": [],
+    "scorer_tax_none_vs_0": {
+     "field": "tax",
+     "correct": true,
+     "expected": 0.0,
+     "got": 0.0,
+     "within_band": true,
+     "detail": ""
+    },
+    "no_number_expected": null,
+    "no_number_printed": [
+     "PO Number: PO-12345"
+    ]
+   },
+   "assertions": [
+    "PASS: ExpectedLine has no qty / unit_price",
+    "PASS: an unprinted tax comes out as 0.0, not None",
+    "PASS: the same invoice prints no tax row, yet expected().tax is 0.0",
+    "PASS: the upstream scorer counts a missing tax as correct when expected tax is 0"
+   ],
+   "failure": null,
+   "differences": [],
+   "affected_sample_constructions": [
+    "A-D 全部 gold（完整字段与缺失状态）"
+   ],
+   "adaptation": "本项目独立生成 gold：每条行都带 qty / unit_price，未印字段用 null 表示缺失，不用 spec.expected() 充当 DocuAgentS gold。",
+   "title": "Expected has no qty / unit_price and reports an unprinted tax as 0"
+  },
+  {
+   "fact": "F9",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/generate.py: render_document (image branch)",
+   "inputs": {
+    "specs": [
+     "probe-image (1 page)",
+     "probe-two-pages as image (3 pages)"
+    ]
+   },
+   "observed": {
+    "single_page": {
+     "ext": "jpg",
+     "pages": 1,
+     "info": {
+      "pixels": [
+       1654,
+       2339
+      ],
+      "dpi": 200
+     },
+     "sha256_16": "8dfefaf40cc90722"
+    },
+    "pil": {
+     "format": "JPEG",
+     "size": [
+      1654,
+      2339
+     ],
+     "dpi": [
+      200,
+      200
+     ]
+    },
+    "two_page_image_error": "probe-two-pages-image: an image document must be one page, got 3",
+    "two_page_pdf": {
+     "ext": "pdf",
+     "pages": 3
+    },
+    "two_page_image_layout_pages": 3
+   },
+   "assertions": [
+    "PASS: an image document reports one page",
+    "PASS: the saved file is a JPEG",
+    "PASS: a multi-page image input is rejected after rendering all pages",
+    "PASS: the same content as a PDF renders three pages"
+   ],
+   "failure": null,
+   "differences": [],
+   "affected_sample_constructions": [
+    "D 类降质图（jpg/png 单页）",
+    "多页图像输入（需要独立 PDF 夹具）"
+   ],
+   "adaptation": "所有降质图样本都必须是单页；多页输入单独用 PDF 夹具承载，并对最终文件断言单页。",
+   "title": "Image mode allows one page only"
+  },
+  {
+   "fact": "F10",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/layout.py: Page, TableModel, page_text, _Builder.table",
+   "inputs": {
+    "spec": "probe-two-pages (6 lines, rows_per_page=2)"
+   },
+   "observed": {
+    "page_count": 3,
+    "page_sizes": [
+     [
+      595.28,
+      841.89
+     ],
+     [
+      595.28,
+      841.89
+     ],
+     [
+      595.28,
+      841.89
+     ]
+    ],
+    "ops_per_page": [
+     35,
+     21,
+     26
+    ],
+    "tables_per_page": [
+     [
+      {
+       "headers": [
+        "Description",
+        "Qty",
+        "Unit Price",
+        "Amount"
+       ],
+       "rows": [
+        [
+         "Line item 00",
+         "1",
+         "10.00",
+         "10.00"
+        ],
+        [
+         "Line item 01",
+         "1",
+         "10.00",
+         "10.00"
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "headers": [
+        "Description",
+        "Qty",
+        "Unit Price",
+        "Amount"
+       ],
+       "rows": [
+        [
+         "Line item 02",
+         "1",
+         "10.00",
+         "10.00"
+        ],
+        [
+         "Line item 03",
+         "1",
+         "10.00",
+         "10.00"
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "headers": [
+        "Description",
+        "Qty",
+        "Unit Price",
+        "Amount"
+       ],
+       "rows": [
+        [
+         "Line item 04",
+         "1",
+         "10.00",
+         "10.00"
+        ],
+        [
+         "Line item 05",
+         "1",
+         "10.00",
+         "10.00"
+        ]
+       ]
+      }
+     ]
+    ],
+    "text_per_page": [
+     "Probe Supply LLC INVOICE\n1 Probe Way\nColumbus, OH 43201 Invoice #: PROBE-0001\nDate: March 4, 2026\nDue Date: April 3, 2026\nTerms: 30 days\nCurrency: USD\nBILL TO\nProbe Buyer Inc\n1 Probe Way\nColumbus, OH 43201\nDescription Qty Unit Price Amount\nLine item 00 1 10.00 10.00\nLine item 01 1 10.00 10.00\nCarried forward 20.00\nContinued on next page\nPage 1 of 3",
+     "Probe Supply LLC INVOICE PROBE-0001 (continued)\nDescription Qty Unit Price Amount\nBrought forward 20.00\nLine item 02 1 10.00 10.00\nLine item 03 1 10.00 10.00\nCarried forward 40.00\nContinued on next page\nPage 2 of 3",
+     "Probe Supply LLC INVOICE PROBE-0001 (continued)\nDescription Qty Unit Price Amount\nBrought forward 40.00\nLine item 04 1 10.00 10.00\nLine item 05 1 10.00 10.00\nSubtotal $60.00\nSales Tax (6%) $3.60\nTOTAL $63.60\nPage 3 of 3"
+    ],
+    "row_counts_per_page": [
+     2,
+     2,
+     2
+    ],
+    "continuation_pages": [
+     1,
+     2
+    ],
+    "coordinate_sample": [
+     {
+      "text": "Probe Supply LLC",
+      "x": 38.0,
+      "y": 56.0,
+      "align": "left"
+     },
+     {
+      "text": "1 Probe Way",
+      "x": 38.0,
+      "y": 70.0,
+      "align": "left"
+     },
+     {
+      "text": "Columbus, OH 43201",
+      "x": 38.0,
+      "y": 80.5,
+      "align": "left"
+     },
+     {
+      "text": "INVOICE",
+      "x": 557.28,
+      "y": 58.0,
+      "align": "right"
+     }
+    ],
+    "table_row_order": [
+     "Line item 00",
+     "Line item 01",
+     "Line item 02",
+     "Line item 03",
+     "Line item 04",
+     "Line item 05"
+    ],
+    "repeated_text": {
+     "Probe Supply LLC": 3,
+     "1 Probe Way": 2,
+     "Columbus, OH 43201": 2,
+     "Description": 3,
+     "Qty": 3,
+     "Unit Price": 3,
+     "Amount": 3,
+     "1": 6,
+     "10.00": 12,
+     "Carried forward": 2,
+     "20.00": 2,
+     "Continued on next page": 2,
+     "INVOICE PROBE-0001 (continued)": 2,
+     "Brought forward": 2,
+     "40.00": 2
+    }
+   },
+   "assertions": [
+    "PASS: every page exposes ops",
+    "PASS: every page with line items exposes a TableModel",
+    "PASS: all six rows are bound to a page",
+    "PASS: the table prints 'Continued on next page' before a page break",
+    "PASS: all text coordinates fall inside the page box (points, top-left origin)",
+    "PASS: y grows downward from the top edge (header text has the smallest y)",
+    "PASS: table rows keep reading order across pages"
+   ],
+   "failure": null,
+   "differences": [],
+   "affected_sample_constructions": [
+    "标注辅助（页号、行号、单元格绑定）"
+   ],
+   "adaptation": "page_text/tables 只作为标注辅助；行索引按表格模型、页号按 Page 顺序记录，重复的续页页眉文本必须排除在唯一文本绑定之外。",
+   "title": "build_pages() records ops, tables and reading-order text"
+  },
+  {
+   "fact": "F11",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/corpus_v1.py: _degraded, photos_and_scans; generator/degrade.py: PHOTO_KINDS, SCAN_KINDS, PARAMS",
+   "inputs": {
+    "PHOTO_KINDS": [
+     "perspective",
+     "rotate_small",
+     "orientation",
+     "motion_blur",
+     "defocus_blur",
+     "low_light",
+     "shadow",
+     "jpeg",
+     "low_res",
+     "crumple",
+     "coffee_stain",
+     "annotations",
+     "crop_edges",
+     "screen_photo",
+     "combo"
+    ],
+    "SCAN_KINDS": [
+     "grayscale_scan",
+     "noise",
+     "fax",
+     "punch_holes",
+     "stamp"
+    ]
+   },
+   "observed": {
+    "photo_count": 45,
+    "scan_count": 15,
+    "photo_ids": [
+     "photo-perspective-mild",
+     "photo-perspective-moderate",
+     "photo-perspective-severe",
+     "photo-rotate-small-mild",
+     "photo-rotate-small-moderate",
+     "photo-rotate-small-severe",
+     "photo-orientation-mild",
+     "photo-orientation-moderate",
+     "photo-orientation-severe",
+     "photo-motion-blur-mild",
+     "photo-motion-blur-moderate",
+     "photo-motion-blur-severe",
+     "photo-defocus-blur-mild",
+     "photo-defocus-blur-moderate",
+     "photo-defocus-blur-severe",
+     "photo-low-light-mild",
+     "photo-low-light-moderate",
+     "photo-low-light-severe",
+     "photo-shadow-mild",
+     "photo-shadow-moderate",
+     "photo-shadow-severe",
+     "photo-jpeg-mild",
+     "photo-jpeg-moderate",
+     "photo-jpeg-severe",
+     "photo-low-res-mild",
+     "photo-low-res-moderate",
+     "photo-low-res-severe",
+     "photo-crumple-mild",
+     "photo-crumple-moderate",
+     "photo-crumple-severe",
+     "photo-coffee-stain-mild",
+     "photo-coffee-stain-moderate",
+     "photo-coffee-stain-severe",
+     "photo-annotations-mild",
+     "photo-annotations-moderate",
+     "photo-annotations-severe",
+     "photo-crop-edges-mild",
+     "photo-crop-edges-moderate",
+     "photo-crop-edges-severe",
+     "photo-screen-photo-mild",
+     "photo-screen-photo-moderate",
+     "photo-screen-photo-severe",
+     "photo-combo-mild",
+     "photo-combo-moderate",
+     "photo-combo-severe"
+    ],
+    "degradation_params": {
+     "perspective": {
+      "mild": 0.03,
+      "moderate": 0.07,
+      "severe": 0.12
+     },
+     "rotate_small": {
+      "mild": 3.0,
+      "moderate": 8.0,
+      "severe": 15.0
+     },
+     "orientation": {
+      "mild": 90,
+      "moderate": 180,
+      "severe": 270
+     },
+     "motion_blur": {
+      "mild": 5,
+      "moderate": 11,
+      "severe": 21
+     },
+     "defocus_blur": {
+      "mild": 1.2,
+      "moderate": 2.4,
+      "severe": 4.0
+     },
+     "low_light": {
+      "mild": 0.7,
+      "moderate": 0.45,
+      "severe": 0.28
+     },
+     "shadow": {
+      "mild": 0.25,
+      "moderate": 0.45,
+      "severe": 0.65
+     },
+     "jpeg": {
+      "mild": 40,
+      "moderate": 30,
+      "severe": 20
+     },
+     "low_res": {
+      "mild": 120,
+      "moderate": 100,
+      "severe": 72
+     },
+     "crumple": {
+      "mild": 1,
+      "moderate": 2,
+      "severe": 3
+     },
+     "coffee_stain": {
+      "mild": 1,
+      "moderate": 2,
+      "severe": 4
+     },
+     "annotations": {
+      "mild": 2,
+      "moderate": 4,
+      "severe": 7
+     },
+     "crop_edges": {
+      "mild": 0.02,
+      "moderate": 0.05,
+      "severe": 0.09
+     },
+     "screen_photo": {
+      "mild": 0.06,
+      "moderate": 0.12,
+      "severe": 0.22
+     },
+     "combo": {
+      "mild": "mild",
+      "moderate": "moderate",
+      "severe": "severe"
+     },
+     "grayscale_scan": {
+      "mild": 6,
+      "moderate": 14,
+      "severe": 24
+     },
+     "noise": {
+      "mild": 18,
+      "moderate": 36,
+      "severe": 60
+     },
+     "fax": {
+      "mild": 196,
+      "moderate": 140,
+      "severe": 98
+     },
+     "punch_holes": {
+      "mild": 2,
+      "moderate": 3,
+      "severe": 4
+     },
+     "stamp": {
+      "mild": 0.35,
+      "moderate": 0.55,
+      "severe": 0.8
+     }
+    },
+    "severities": [
+     "mild",
+     "moderate",
+     "severe"
+    ],
+    "sample": {
+     "doc_id": "photo-defocus-blur-mild",
+     "ext": "jpg",
+     "pages": 1,
+     "base_id": "base-carrier-na",
+     "degradations": [
+      {
+       "kind": "defocus_blur",
+       "severity": "mild"
+      }
+     ],
+     "params": 1.2,
+     "info": {
+      "pixels": [
+       1654,
+       2339
+      ],
+      "dpi": 200
+     },
+     "sha256_16": "8e16bf84ad80b97e"
+    },
+    "sample_pixel_stats": {
+     "min": 17,
+     "max": 255,
+     "dark_fraction": 0.0071
+    }
+   },
+   "assertions": [
+    "PASS: 15 photo kinds x 3 severities = 45 documents",
+    "PASS: 5 scan kinds x 3 severities = 15 documents",
+    "PASS: all three severities are used",
+    "PASS: a degraded sample renders as one JPEG",
+    "PASS: the degraded page still has visible ink"
+   ],
+   "failure": null,
+   "differences": [],
+   "affected_sample_constructions": [
+    "D 类降质图样本"
+   ],
+   "adaptation": "固定 kind、severity、顺序与 PARAMS 数值；保存 render 参数，并对最终文件做可辨认性检查。",
+   "title": "_degraded() generates graded photo and scan documents"
+  },
+  {
+   "fact": "F12",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/generate.py: render_document",
+   "inputs": {
+    "specs": [
+     "probe-normal",
+     "probe-image",
+     "probe-two-pages"
+    ]
+   },
+   "observed": {
+    "normal": {
+     "type_bytes": "bytes",
+     "ext": "pdf",
+     "pages": 1,
+     "info": {},
+     "length": 2400
+    },
+    "image": {
+     "type_bytes": "bytes",
+     "ext": "jpg",
+     "pages": 1,
+     "info": {
+      "pixels": [
+       1654,
+       2339
+      ],
+      "dpi": 200
+     },
+     "length": 132753
+    },
+    "two_pages": {
+     "type_bytes": "bytes",
+     "ext": "pdf",
+     "pages": 3,
+     "info": {},
+     "length": 4181
+    },
+    "pdfium_pages": 1,
+    "layout_pages": 3,
+    "file_pages": 3,
+    "layout_and_file_agree": true,
+    "layout_text_equals_pdf_text": true,
+    "layout_text": "Probe Supply LLC INVOICE\n1 Probe Way\nColumbus, OH 43201 Invoice #: PROBE-0001\nDate: March 4, 2026\nDue Date: April 3, 2026\nTerms: 30 days\nCurrency: USD\nBILL TO\nProbe Buyer Inc\n1 Probe Way\nColumbus, OH 43201\nDescription Qty Unit Price Amount\nLine item 00 1 10.00 10.00\nLine item 01 1 10.00 10.00\nCarried forward 20.00\nContinued on next page\nPage 1 of 3\nProbe Supply LLC INVOICE PROBE-0001 (continued)\nDescription Qty Unit Price Amount\nBrought forward 20.00\nLine item 02 1 10.00 10.00\nLine item 03 1 10.00 10.00\nCarried forward 40.00\nContinued on next page\nPage 2 of 3\nProbe Supply LLC INVOICE PROBE-0001 (continued)\nDescription Qty Unit Price Amount\nBrought forward 40.00\nLine item 04 1 10.00 10.00\nLine item 05 1 10.00 10.00\nSubtotal $60.00\nSales Tax (6%) $3.60\nTOTAL $63.60\nPage 3 of 3",
+    "file_text": "Probe Supply LLC INVOICE\n1 Probe Way\nColumbus, OH 43201 Invoice #: PROBE-0001\nDate: March 4, 2026\nDue Date: April 3, 2026\nTerms: 30 days\nCurrency: USD\nBILL TO\nProbe Buyer Inc\n1 Probe Way\nColumbus, OH 43201\nDescription Qty Unit Price Amount\nLine item 00 1 10.00 10.00\nLine item 01 1 10.00 10.00\nCarried forward 20.00\nContinued on next page\nPage 1 of 3\nProbe Supply LLC INVOICE PROBE-0001 (continued)\nDescription Qty Unit Price Amount\nBrought forward 20.00\nLine item 02 1 10.00 10.00\nLine item 03 1 10.00 10.00\nCarried forward 40.00\nContinued on next page\nPage 2 of 3\nProbe Supply LLC INVOICE PROBE-0001 (continued)\nDescription Qty Unit Price Amount\nBrought forward 40.00\nLine item 04 1 10.00 10.00\nLine item 05 1 10.00 10.00\nSubtotal $60.00\nSales Tax (6%) $3.60\nTOTAL $63.60\nPage 3 of 3",
+    "cell_signature": "4fdcfee17a2d2e17",
+    "cells_compared": 6,
+    "rows_found_in_file": 6,
+    "cells_not_found_in_file": [],
+    "coordinate_tracking": [
+     {
+      "text": "Invoice #:",
+      "layout_y": 78.0,
+      "pdf_top": 71.26
+     },
+     {
+      "text": "Description",
+      "layout_y": 224.0,
+      "pdf_top": 217.34
+     },
+     {
+      "text": "Description",
+      "layout_y": 80.0,
+      "pdf_top": 73.34
+     },
+     {
+      "text": "Description",
+      "layout_y": 80.0,
+      "pdf_top": 73.34
+     },
+     {
+      "text": "TOTAL",
+      "layout_y": 191.0,
+      "pdf_top": 182.67
+     }
+    ],
+    "layout_to_pdf_offset": -7.01
+   },
+   "assertions": [
+    "PASS: render_document returns (bytes, str, int, dict)",
+    "PASS: the returned page count equals the PDF's page count",
+    "PASS: a second build_pages(spec) call yields the same page count",
+    "PASS: build_pages(spec) and the PDF text layer give the same rows",
+    "PASS: every table cell of every layout row appears in the rendered PDF, on one baseline",
+    "PASS: the layout's top-left y and the PDF's top-down 'top' agree within 3 points (constant offset -7.01 = ascent)"
+   ],
+   "failure": null,
+   "differences": [],
+   "affected_sample_constructions": [
+    "全部样本的页数与 gold 布局对应"
+   ],
+   "adaptation": "gold 只引用一次 build_pages(spec) 的结果并把它与 render_document 的返回页数、文本、单元格签名交叉核对。",
+   "title": "render_document() returns bytes, extension, page count and info"
+  },
+  {
+   "fact": "F13",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/corpus_v1.py: money_style; generator/layout.py: meta_rows",
+   "inputs": {
+    "specs": [
+     "probe-normal (show_currency_header=True)",
+     "probe-normal with show_currency_header=False"
+    ]
+   },
+   "observed": {
+    "header_rows": [
+     "Currency: USD"
+    ],
+    "bare_rows": [
+     "Probe Supply LLC INVOICE",
+     "1 Probe Way",
+     "Columbus, OH 43201 Invoice #: PROBE-0001",
+     "Date: March 4, 2026",
+     "Due Date: April 3, 2026",
+     "Terms: 30 days",
+     "BILL TO",
+     "Probe Buyer Inc",
+     "1 Probe Way",
+     "Columbus, OH 43201",
+     "Description Qty Unit Price Amount",
+     "Widget A 4 25.00 100.00",
+     "Widget B 2 31.25 62.50",
+     "Subtotal $162.50",
+     "Sales Tax (6%) $9.75",
+     "TOTAL $172.25",
+     "Page 1 of 1"
+    ],
+    "bare_currency_lines": [],
+    "us_symbol": "$",
+    "us_position": "prefix",
+    "nad_bare_dollar": {
+     "currency": "NAD",
+     "symbol": "$",
+     "show_currency_header": false
+    },
+    "normal_has_us_address": true
+   },
+   "assertions": [
+    "PASS: show_currency_header=True prints 'Currency: USD'",
+    "PASS: without the header the invoice prints only '$' and no ISO code",
+    "PASS: USD amounts print with a bare '$'",
+    "PASS: a NAD invoice also prints '$', so '$' alone does not mean USD"
+   ],
+   "failure": null,
+   "differences": [],
+   "affected_sample_constructions": [
+    "A-D 原件（Currency: USD 行）",
+    "gold 的 currency 字段"
+   ],
+   "adaptation": "A-D 原件一律设置 show_currency_header=True 并检查 'Currency: USD'；不能仅凭 '$'、地址或 'Sales Tax' 推定 USD。",
+   "title": "USD may print only '$'; show_currency_header adds 'Currency: USD'"
+  },
+  {
+   "fact": "F14",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/spec.py: money, NumberStyle.fmt, fmt_date; generator/layout.py: _qty, _num, _cell_money",
+   "inputs": {
+    "rounding_inputs": [
+     0.125,
+     1.005,
+     0.375,
+     2.675
+    ],
+    "printed_spec": "probe-f2 (0.125 unit price, qty 3)"
+   },
+   "observed": {
+    "money_rounding": {
+     "0.125": 0.13,
+     "1.005": 1.01,
+     "0.375": 0.38,
+     "2.675": 2.68
+    },
+    "date_formats": {
+     "US": "03/04/2026",
+     "UK": "04/03/2026",
+     "EU": "04.03.2026",
+     "ZA": "2026/03/04",
+     "ISO": "2026-03-04",
+     "LONG": "4 March 2026",
+     "MON": "04-Mar-2026",
+     "USLONG": "March 4, 2026"
+    },
+    "fractional_qty_row": [
+     [
+      "Fractional qty",
+      "2.50",
+      "4.94",
+      "12.35"
+     ]
+    ],
+    "three_dp_row": [
+     [
+      "Three dp",
+      "2.005",
+      "6.16",
+      "12.35"
+     ]
+    ],
+    "printed_recompute": {
+     "printed_qty": "2.50",
+     "printed_unit": "4.94",
+     "printed_amount": "12.35",
+     "decimal_recompute": "12.35"
+    },
+    "half_cent_row": [
+     [
+      "Half cent",
+      "3",
+      "0.13",
+      "0.38"
+     ]
+    ]
+   },
+   "assertions": [
+    "PASS: money() rounds half up to the cent",
+    "PASS: US and UK date styles disagree on the same date, as they should",
+    "PASS: a fractional quantity prints with two decimals",
+    "PASS: a quantity that needs three decimals prints three",
+    "PASS: printed qty x unit price equals the printed amount for 2.50 x 4.94",
+    "PASS: with a 0.125 unit price the printed rows do not multiply exactly"
+   ],
+   "failure": null,
+   "differences": [
+    {
+     "title": "Printed precision is 2 decimals for prices and amounts, 2-3 for quantities",
+     "severity": "low",
+     "detail": "A quantity prints with two decimals when it is a multiple of 0.01, three otherwise; unit prices and amounts print two. Rebuilding an amount from the printed unit price can be one cent off.",
+     "affected_sample_constructions": [
+      "A-D 原件（日期、数量、单价、金额精度）"
+     ],
+     "adaptation": "gold keeps the printed amount; recomputation allows a 1-cent delta"
+    }
+   ],
+   "affected_sample_constructions": [
+    "A-D 原件（日期、数量、单价、金额精度）"
+   ],
+   "adaptation": "gold 金额按印刷字符串解析；数量允许 2 或 3 位小数；单价 2 位、汇率 4 位；重算允许 1 分差异。",
+   "title": "Date, floating-point and printed-precision boundaries"
+  },
+  {
+   "fact": "F15",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/render.py, generator/degrade.py, generator/generate.py, generator/handwriting.py",
+   "inputs": {
+    "specs": [
+     "probe-normal",
+     "probe-image",
+     "probe-two-pages"
+    ],
+    "render_calls": "twice in one process, and once in a fresh subprocess"
+   },
+   "observed": {
+    "normal_twice_same": true,
+    "normal_sha256_16": "c6915b9204fc8824",
+    "image_twice_same": true,
+    "image_sha256_16": "8dfefaf40cc90722",
+    "two_pages_twice_same": true,
+    "two_pages_sha256_16": "206c2b9c99d75292",
+    "fresh_process_returncode": 0,
+    "fresh_process_sha256": {
+     "normal": "c6915b9204fc8824b3b183acbabedfb3f0307c74f813a973d041b782f18dffd8",
+     "image": "8dfefaf40cc9072223f2e366e0a5d516d48fe8020368042eca26793de72a5f65",
+     "two_pages": "206c2b9c99d75292285fa3ea96bb451dc331c8961a9c80a6ce3a903adb573008"
+    },
+    "order_forward": [
+     "6af9e34707a5b4f99d4a3df0eed3dee9c0d38a11ce5d365819cc4d56b3a95c9f",
+     "6582b9577a421f3d0f18bb2456a619ffd80d46c92ae348bdbcae379aeb35a513",
+     "2d19eb5e3dc9a359224788fa9592df7f4186fd2479b54e1766c242867459d9dd"
+    ],
+    "order_backward": [
+     "6af9e34707a5b4f99d4a3df0eed3dee9c0d38a11ce5d365819cc4d56b3a95c9f",
+     "6582b9577a421f3d0f18bb2456a619ffd80d46c92ae348bdbcae379aeb35a513",
+     "2d19eb5e3dc9a359224788fa9592df7f4186fd2479b54e1766c242867459d9dd"
+    ],
+    "normal_before_edit": "c6915b9204fc8824b3b183acbabedfb3f0307c74f813a973d041b782f18dffd8",
+    "normal_after_other_edit": "c6915b9204fc8824b3b183acbabedfb3f0307c74f813a973d041b782f18dffd8",
+    "hand_font": {
+     "file": "Inkfree.ttf",
+     "sha256_16": "c8ab96bc49ec1dc3",
+     "path_is_absolute": true
+    },
+    "published_corpus_check": {
+     "mode": "all",
+     "checked": 181,
+     "published_total": 181,
+     "coverage": "181/181",
+     "sample_ids": null
+    },
+    "published_corpus_matches": {
+     "clean-de-grid-eu-decimals": true,
+     "clean-fr-right-header": true,
+     "clean-gb-mono-plain": true,
+     "clean-gb-serif": true,
+     "clean-na-bulk-consumables": true,
+     "clean-na-center-letterhead": true,
+     "clean-nl-two-column": true,
+     "clean-us-clean-simple": true,
+     "clean-us-credit-applied": true,
+     "clean-us-delivery-alias": true,
+     "clean-us-freight-alias": true,
+     "clean-us-fuel-surcharge": true,
+     "clean-us-handling-alias": true,
+     "clean-us-landscape": true,
+     "clean-us-many-line-items": true,
+     "clean-us-net30-terms": true,
+     "clean-us-overpaid-invoice": true,
+     "clean-us-promo-code": true,
+     "clean-us-service-fee": true,
+     "clean-us-sh-abbrev": true,
+     "clean-us-shipping-and-discount": true,
+     "clean-us-single-service": true,
+     "clean-us-tax-only": true,
+     "clean-us-trade-discount": true,
+     "clean-us-two-tax-lines": true,
+     "clean-us-with-discount": true,
+     "clean-us-with-shipping": true,
+     "clean-us-zero-shipping-explicit": true,
+     "clean-za-band-space-groups": true,
+     "clean-za-code-zebra": true,
+     "clean-zm-banner": true,
+     "credit-brackets-gb": true,
+     "credit-brackets-us": true,
+     "credit-cr-suffix-za": true,
+     "credit-ndc-na": true,
+     "credit-ndc-za-ref": true,
+     "credit-note-minus-gb": true,
+     "credit-note-minus-za": true,
+     "credit-r-minus-1": true,
+     "credit-r-minus-2": true,
+     "credit-unsigned-na": true,
+     "currency-dual-eur-nad-2": true,
+     "currency-dual-usd-nad-4": true,
+     "currency-dual-usd-zar-1": true,
+     "currency-dual-usd-zar-3": true,
+     "currency-eur-1": true,
+     "currency-eur-2": true,
+     "currency-gbp-1": true,
+     "currency-gbp-2": true,
+     "currency-multi-line-nad": true,
+     "currency-multi-line-zar": true,
+     "currency-nad-1": true,
+     "currency-nad-2": true,
+     "currency-nad-bare-dollar": true,
+     "currency-usd-1": true,
+     "currency-usd-2": true,
+     "currency-zar-1": true,
+     "currency-zar-2": true,
+     "currency-zmw-1": true,
+     "currency-zmw-2": true,
+     "freight-carrier-na-5": true,
+     "freight-carrier-na-6": true,
+     "freight-carrier-us-1": true,
+     "freight-carrier-us-2": true,
+     "freight-carrier-za-3": true,
+     "freight-carrier-za-4": true,
+     "freight-clearing-na-1": true,
+     "freight-clearing-na-2": true,
+     "freight-clearing-na-3": true,
+     "freight-clearing-za-4": true,
+     "freight-clearing-za-5": true,
+     "freight-clearing-za-6": true,
+     "freight-trip-reference-1": true,
+     "freight-trip-reference-2": true,
+     "freight-trip-reference-3": true,
+     "freight-trip-reference-4": true,
+     "handwritten-invoice-book-average-3": true,
+     "handwritten-invoice-book-average-4": true,
+     "handwritten-invoice-book-average-5": true,
+     "handwritten-invoice-book-neat-1": true,
+     "handwritten-invoice-book-neat-2": true,
+     "handwritten-invoice-book-poor-6": true,
+     "handwritten-invoice-book-poor-7": true,
+     "handwritten-invoice-book-poor-8": true,
+     "hard-lines-vs-subtotal": true,
+     "hard-missing-invoice-number-1": true,
+     "hard-missing-invoice-number-2": true,
+     "hard-multiple-invoices-2": true,
+     "hard-multiple-invoices-3": true,
+     "hard-po-beside-invoice-number-1": true,
+     "hard-po-beside-invoice-number-2": true,
+     "hard-po-beside-invoice-number-3": true,
+     "hard-statement-na": true,
+     "hard-statement-za": true,
+     "hard-total-inflated": true,
+     "hard-total-small-residual": true,
+     "hard-wrong-vat-amount": true,
+     "multipage-2p-us-2": true,
+     "multipage-2p-za-1": true,
+     "multipage-3p-gb-4": true,
+     "multipage-3p-na-3": true,
+     "multipage-4p-za-5": true,
+     "multipage-5p-de-6": true,
+     "multipage-5p-na-7": true,
+     "multipage-6p-za-8": true,
+     "multipage-8p-na-10": true,
+     "multipage-8p-us-9": true,
+     "photo-annotations-mild": true,
+     "photo-annotations-moderate": true,
+     "photo-annotations-severe": true,
+     "photo-coffee-stain-mild": true,
+     "photo-coffee-stain-moderate": true,
+     "photo-coffee-stain-severe": true,
+     "photo-combo-mild": true,
+     "photo-combo-moderate": true,
+     "photo-combo-severe": true,
+     "photo-crop-edges-mild": true,
+     "photo-crop-edges-moderate": true,
+     "photo-crop-edges-severe": true,
+     "photo-crumple-mild": true,
+     "photo-crumple-moderate": true,
+     "photo-crumple-severe": true,
+     "photo-defocus-blur-mild": true,
+     "photo-defocus-blur-moderate": true,
+     "photo-defocus-blur-severe": true,
+     "photo-jpeg-mild": true,
+     "photo-jpeg-moderate": true,
+     "photo-jpeg-severe": true,
+     "photo-low-light-mild": true,
+     "photo-low-light-moderate": true,
+     "photo-low-light-severe": true,
+     "photo-low-res-mild": true,
+     "photo-low-res-moderate": true,
+     "photo-low-res-severe": true,
+     "photo-motion-blur-mild": true,
+     "photo-motion-blur-moderate": true,
+     "photo-motion-blur-severe": true,
+     "photo-orientation-mild": true,
+     "photo-orientation-moderate": true,
+     "photo-orientation-severe": true,
+     "photo-perspective-mild": true,
+     "photo-perspective-moderate": true,
+     "photo-perspective-severe": true,
+     "photo-rotate-small-mild": true,
+     "photo-rotate-small-moderate": true,
+     "photo-rotate-small-severe": true,
+     "photo-screen-photo-mild": true,
+     "photo-screen-photo-moderate": true,
+     "photo-screen-photo-severe": true,
+     "photo-shadow-mild": true,
+     "photo-shadow-moderate": true,
+     "photo-shadow-severe": true,
+     "scan-fax-mild": true,
+     "scan-fax-moderate": true,
+     "scan-fax-severe": true,
+     "scan-grayscale-scan-mild": true,
+     "scan-grayscale-scan-moderate": true,
+     "scan-grayscale-scan-severe": true,
+     "scan-noise-mild": true,
+     "scan-noise-moderate": true,
+     "scan-noise-severe": true,
+     "scan-punch-holes-mild": true,
+     "scan-punch-holes-moderate": true,
+     "scan-punch-holes-severe": true,
+     "scan-stamp-mild": true,
+     "scan-stamp-moderate": true,
+     "scan-stamp-severe": true,
+     "tax-exclusive-vat-column-gb": true,
+     "tax-exclusive-vat-column-za": true,
+     "tax-inclusive-subtotal-na": true,
+     "tax-inclusive-total-na": true,
+     "tax-inclusive-total-za": true,
+     "tax-percentage-line-1": true,
+     "tax-percentage-line-2": true,
+     "tax-sage-subtotal-after-vat-1": true,
+     "tax-sage-subtotal-after-vat-2": true,
+     "tax-sage-subtotal-after-vat-3": true,
+     "tax-withholding-na": true,
+     "tax-withholding-zm": true,
+     "tax-zero-rated-na": true,
+     "tax-zero-rated-za": true
+    },
+    "environment": {
+     "os": "Windows-10-10.0.26100-SP0",
+     "os_version": "10.0.26100",
+     "machine": "AMD64",
+     "python": "3.11.17",
+     "python_implementation": "CPython",
+     "locale": [
+      "Chinese (Simplified)_China",
+      "936"
+     ],
+     "encoding": "utf-8",
+     "timezone": "中国标准时间 +0800",
+     "baseline_date": "2026-03-04",
+     "packages": {
+      "reportlab": "5.0.1",
+      "pillow": "12.3.0",
+      "python-dateutil": "2.9.0.post0",
+      "pypdfium2": "5.4.0",
+      "pdfplumber": "0.11.8",
+      "pytest": "8.4.2",
+      "pdfminer-six": "20251107",
+      "cryptography": "50.0.2",
+      "cffi": "2.1.1",
+      "charset-normalizer": "3.5.2",
+      "colorama": "0.4.6",
+      "iniconfig": "2.3.1",
+      "packaging": "26.3",
+      "pluggy": "1.7.0",
+      "pygments": "2.21.0",
+      "pycparser": "3.11",
+      "six": "1.17.0"
+     },
+     "fonts": {
+      "Inkfree.ttf": {
+       "referenced_as": "%WINDIR%\\Fonts\\Inkfree.ttf",
+       "sha256": "c8ab96bc49ec1dc36936b5973fc143ca222c1a33ab27b87071a3bbc44d34ca9a",
+       "bytes": 198972
+      }
+     },
+     "library_versions_imported": {
+      "reportlab": "5.0.1",
+      "pillow": "12.3.0"
+     }
+    }
+   },
+   "assertions": [
+    "PASS: normal: two renders in one process are byte-identical",
+    "PASS: image: two renders in one process are byte-identical",
+    "PASS: two_pages: two renders in one process are byte-identical",
+    "PASS: normal: a fresh process produces the same bytes",
+    "PASS: image: a fresh process produces the same bytes",
+    "PASS: two_pages: a fresh process produces the same bytes",
+    "PASS: rendering in reverse order does not change any file",
+    "PASS: rendering a changed document does not move the original",
+    "PASS: the handwriting font is Ink Free, as the published corpus used",
+    "PASS: 181 of 181 checked documents reproduce byte-identically (coverage 181/181)"
+   ],
+   "failure": null,
+   "differences": [],
+   "affected_sample_constructions": [
+    "全部样本的字节级复现声明"
+   ],
+   "adaptation": "字节复现只对同一锁定环境声明；其他 OS 只要求语义一致，并把差异写入报告。",
+   "title": "A fixed seed does not by itself guarantee identical bytes everywhere"
+  },
+  {
+   "fact": "F16",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "LICENSE, DATA_LICENSE, README.md, CITATION.cff at the pinned commit",
+   "inputs": {
+    "files": [
+     "LICENSE",
+     "DATA_LICENSE",
+     "README.md",
+     "CITATION.cff",
+     "requirements.txt"
+    ]
+   },
+   "observed": {
+    "files": {
+     "LICENSE": {
+      "bytes": 1259,
+      "sha256_16": "ce5171d557c5ba09"
+     },
+     "DATA_LICENSE": {
+      "bytes": 19319,
+      "sha256_16": "67b9dcda6f06d6c4"
+     },
+     "README.md": {
+      "bytes": 14062,
+      "sha256_16": "3735b66e3e97fac5"
+     },
+     "CITATION.cff": {
+      "bytes": 1204,
+      "sha256_16": "73d376ef1fe14e60"
+     },
+     "requirements.txt": {
+      "bytes": 168,
+      "sha256_16": "f7c00e86b7539604"
+     }
+    },
+    "license_kind": "MIT License",
+    "license_scope_statement": [
+     "This license covers the code in generator/ and scorer/. The documents and"
+    ],
+    "data_license_kind": "Creative Commons Attribution 4.0 International Public License",
+    "readme_license_section": [
+     "## License",
+     "- Code (`generator/`, `scorer/`): [MIT](LICENSE).",
+     "- Data (`corpus/`, `examples/`): [Creative Commons Attribution 4.0](DATA_LICENSE) (CC BY 4.0)."
+    ],
+    "handwriting_font_note": "Ink Free is not redistributed (README 'What is not included')",
+    "font_redistributed": true
+   },
+   "assertions": [
+    "PASS: LICENSE is MIT",
+    "PASS: the MIT grant states that it covers generator/ and scorer/",
+    "PASS: the data licence statement names corpus/, examples/ and CC BY 4.0",
+    "PASS: DATA_LICENSE is CC BY 4.0",
+    "PASS: README separates code (MIT) from data (CC BY 4.0)",
+    "PASS: README says the handwriting font is not redistributed"
+   ],
+   "failure": null,
+   "differences": [],
+   "affected_sample_constructions": [
+    "本仓库的许可说明（NOTICE）"
+   ],
+   "adaptation": "代码与数据分开写：上游 generator/、scorer/ 保持 MIT，上游 corpus/、examples/ 保持 CC BY 4.0；新增代码 MIT，新增数据 CC BY 4.0，不覆盖上游 LICENSE。",
+   "title": "Code and data licences are separate"
+  },
+  {
+   "fact": "F17",
+   "commit": "3f8864d0d96103a279b5320000c69a71068edd14",
+   "status": "pass",
+   "location": "generator/spec.py: validate; scorer/score.py: CENT, BAND, score_money; generator/corpus_v1.py: _validate",
+   "inputs": {
+    "calls": [
+     "score_money with 0, 0.004, 0.005, 0.01, 0.0101 differences"
+    ]
+   },
+   "observed": {
+    "CENT": 0.005,
+    "BAND": 0.0101,
+    "score_money": [
+     {
+      "diff": 0.0,
+      "correct": true,
+      "within_band": true
+     },
+     {
+      "diff": 0.004,
+      "correct": true,
+      "within_band": true
+     },
+     {
+      "diff": 0.005,
+      "correct": true,
+      "within_band": true
+     },
+     {
+      "diff": 0.01,
+      "correct": false,
+      "within_band": true
+     },
+     {
+      "diff": 0.0101,
+      "correct": false,
+      "within_band": true
+     },
+     {
+      "diff": 0.02,
+      "correct": false,
+      "within_band": false
+     }
+    ],
+    "boundary_note": "0.005 is stored as 0.005000000000000782, so `diff < CENT` is True; the effective boundary is just under one cent",
+    "consistent_validate": null,
+    "line_1_cent_off_validate": null,
+    "flagged_total_override": {
+     "printed": 999.0,
+     "computed": 172.25,
+     "should_flag": true
+    },
+    "unflagged_total_override_error": "probe-f17-flag: subtotal 162.5/162.5 or total 999.0/172.25 does not add up"
+   },
+   "assertions": [
+    "PASS: the scorer treats anything below one cent as correct (float 0.005 slips through)",
+    "PASS: the +-1 cent band is reported separately from correctness (with the same float boundary)",
+    "PASS: a line 1 cent off passes validate() (tolerance 0.011)",
+    "PASS: should_flag=True lets a deliberately inconsistent total through",
+    "PASS: should_flag=False rejects the same inconsistent total"
+   ],
+   "failure": null,
+   "differences": [
+    {
+     "title": "Upstream tolerances and should_flag differ from this project's strict rules",
+     "severity": "medium",
+     "detail": "scorer/score.py accepts a difference below one cent (a float 0.005 slips through) and reports a separate +-1 cent band; DocSpec.validate() allows 0.005 on totals and 0.011 on a line product, and lets any inconsistent document through when should_flag=True.",
+     "affected_sample_constructions": [
+      "本项目 gold 校验",
+      "C 类不一致样本的 should_flag"
+     ],
+     "adaptation": "use the upstream scorer and validate() only as an extra check; this project validates the printed decimal values against its own contract, independently"
+    }
+   ],
+   "affected_sample_constructions": [
+    "本项目 gold 校验",
+    "C 类不一致样本的 should_flag"
+   ],
+   "adaptation": "上游 scorer 的容差与 should_flag 只作为额外检查；本项目按原件十进制值与本项目契约独立校验。",
+   "title": "Upstream tolerances and should_flag differ from strict project rules"
+  }
+ ]
+}

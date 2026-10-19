@@ -13,15 +13,23 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
-from docuagents_gen import probe
-
+# Self-contained import path: this file must run under a bare
+# `pytest tests/test_upstream_compat.py` with no pytest.ini, no conftest.py
+# and no PYTHONPATH.  `pytest` (the console script) does not put the current
+# directory on sys.path, only `python -m pytest` does.
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from docuagents_gen import probe  # noqa: E402  (after the path fix)  # isort: skip
 
 
 # ---------------------------------------------------------------------------
@@ -68,6 +76,30 @@ def test_origin_and_upstream_remotes_exist() -> None:
     assert {"origin", "upstream"} <= remotes
     assert "Silent-wqh/docuagents-invoice-samples" in out.stdout
     assert "DrewKraken/invoice-extraction-benchmark" in out.stdout
+
+
+def test_console_script_pytest_can_import_the_probe() -> None:
+    """Defect 1 of Review R1: `pytest tests/...` must work with no setup.
+
+    The console script does not add the current directory to ``sys.path``
+    (``python -m pytest`` does).  This test therefore runs the real console
+    script in a child process with a scrubbed environment.  Collection only:
+    the child must import this module and must not run the suite again.
+    """
+    if sys.platform == "win32":
+        script = Path(sys.executable).with_name("pytest.exe")
+    else:
+        script = Path(sys.executable).with_name("pytest")
+    assert script.is_file(), f"pytest console script not found at {script}"
+
+    env = {k: v for k, v in os.environ.items() if k not in ("PYTHONPATH", "PYTHONHOME")}
+    out = subprocess.run(
+        [str(script), "--collect-only", "-q", "tests/test_upstream_compat.py"],
+        cwd=ROOT, capture_output=True, text=True, env=env, timeout=300,
+    )
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert "ModuleNotFoundError" not in out.stdout + out.stderr, out.stdout + out.stderr
+    assert re.search(r"\d+ tests? collected", out.stdout), out.stdout
 
 
 # ---------------------------------------------------------------------------
@@ -118,6 +150,23 @@ def test_differences_name_affected_construction_and_adaptation(report: dict) -> 
         assert d["adaptation"]
 
 
+def test_differences_are_counted_consistently(report: dict) -> None:
+    """Defect 3 of Review R1: one count, everywhere.
+
+    The top-level list, the summary, and the per-fact records must agree, so
+    the report text and the probe stdout can never quote different numbers.
+    """
+    per_fact = [(c["fact"], d) for c in report["facts"] for d in c["differences"]]
+    top_level = [(d["fact"], {k: v for k, v in d.items() if k != "fact"}) for d in report["differences"]]
+    assert top_level == per_fact, "top-level differences do not mirror the per-fact records"
+    assert report["summary"]["differences"] == len(report["differences"])
+    assert len({d["fact"] for d in report["differences"]}) == len(report["differences"]), (
+        "a fact registered more than one top-level difference"
+    )
+    # The registered facts are the ones the design text names.
+    assert {d["fact"] for d in report["differences"]} == {"F1", "F2", "F5", "F14", "F17"}
+
+
 # ---------------------------------------------------------------------------
 # the specific facts, asserted on their own evidence
 # ---------------------------------------------------------------------------
@@ -159,6 +208,26 @@ def test_f12_layout_and_file_agree(facts: dict) -> None:
 def test_f15_published_sample_reproduces(facts: dict) -> None:
     matches = facts["F15"]["observed"]["published_corpus_matches"]
     assert matches and all(matches.values()), matches
+
+
+def test_f15_coverage_is_annotated(facts: dict) -> None:
+    """Defect 5 of Review R1: the default sample must state 10/181, not hide it."""
+    obs = facts["F15"]["observed"]["published_corpus_check"]
+    assert obs["mode"] == "sample"
+    assert obs["checked"] == 10
+    assert obs["published_total"] == 181
+    assert obs["coverage"] == "10/181"
+    assert len(obs["sample_ids"]) == 10
+    assert "10/181" in facts["F15"]["adaptation"]
+    # The full run must be possible and must say so in the same records.
+    assert "python -m docuagents_gen.probe --check-all" in facts["F15"]["adaptation"]
+    full = probe.run_probe(facts=["F15"], check_all=True)["facts"][0]["observed"]
+    all_obs = full["published_corpus_check"]
+    assert all_obs["mode"] == "all"
+    assert all_obs["checked"] == all_obs["published_total"] == 181
+    assert all_obs["coverage"] == "181/181"
+    assert all_obs["sample_ids"] is None
+    assert all(full["published_corpus_matches"].values())
 
 
 def test_f16_code_and_data_licences_are_separate(facts: dict) -> None:
@@ -219,6 +288,18 @@ def test_environment_lock_matches_runtime() -> None:
     assert lock["timezone"]
 
 
+def test_environment_lock_states_the_f15_coverage() -> None:
+    """Defect 5 of Review R1: the lock must not imply a full-corpus guarantee."""
+    lock = json.loads((ROOT / "environment.lock.json").read_text(encoding="utf-8"))
+    rep = lock["corpus_reproduction"]
+    assert rep["published_documents"] == 181
+    assert rep["probe_default_sample"] == 10
+    assert rep["default_coverage"] == "10/181"
+    assert "not a full-corpus guarantee" in rep["coverage_note"]
+    assert rep["full_check_command"] == "python -m docuagents_gen.probe --check-all"
+    assert (ROOT / rep["full_check_report"]).is_file()
+
+
 def test_locked_packages_are_exactly_pinned() -> None:
     lock = json.loads((ROOT / "environment.lock.json").read_text(encoding="utf-8"))
     for name, info in lock["packages"].items():
@@ -265,3 +346,21 @@ def test_fonts_are_not_committed() -> None:
     out = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True)
     tracked = out.stdout.splitlines()
     assert not [p for p in tracked if p.lower().endswith((".ttf", ".otf", ".ttc"))]
+
+
+# ---------------------------------------------------------------------------
+# estimate artifact after P1
+# ---------------------------------------------------------------------------
+
+
+def test_estimate_uses_the_engineering_task_ids() -> None:
+    path = ROOT / "reports" / "estimate_after_p1.md"
+    assert path.is_file(), "reports/estimate_after_p1.md is missing"
+    text = path.read_text(encoding="utf-8")
+    for task_id in ("T07", "T14", "T17"):
+        assert task_id in text, f"the estimate does not name {task_id}"
+    # The review's provisional numbers must not survive in the artifact.
+    for stale in ("T04", "T05", "T06"):
+        assert stale not in text, f"the estimate still uses the provisional id {stale}"
+    for scope in ("P2", "P3", "P4"):
+        assert scope in text, f"the estimate does not map {scope}"
