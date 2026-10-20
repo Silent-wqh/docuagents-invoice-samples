@@ -1,0 +1,500 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docuagents.example/schemas/gold.schema.json",
+  "title": "DocuAgentS sample gold (schema_version 2)",
+  "description": "One gold annotation for one sample document. The document describes what the file prints; a value that the file does not print is null, and its evidence entry is not_found with the pages that were searched. Status and code values come from contracts/codes.v1.1.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_version",
+    "doc_id",
+    "split",
+    "class",
+    "subclass",
+    "target_question",
+    "source_family",
+    "file",
+    "printing",
+    "invoice",
+    "scope",
+    "readability",
+    "expected_issues",
+    "acceptance_policy",
+    "arithmetic",
+    "evidence",
+    "annotation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2,
+      "description": "Gold structure version. An integer, unrelated to the runtime envelope version."
+    },
+    "contract_version": {
+      "const": "1.1"
+    },
+    "doc_id": {
+      "type": "string",
+      "pattern": "^da-[a-z0-9]+-[a-z0-9]+(-[a-z0-9]+)?$"
+    },
+    "split": {
+      "enum": ["dev", "test", "unassigned"]
+    },
+    "class": {
+      "enum": ["A", "B", "C", "D", "E", "?"]
+    },
+    "subclass": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_question": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_family": {
+      "type": "string",
+      "minLength": 1
+    },
+    "file": {
+      "$ref": "#/$defs/file"
+    },
+    "printing": {
+      "$ref": "#/$defs/printing"
+    },
+    "invoice": {
+      "description": "The single invoice the file holds. Null when the file holds several invoices (multi_invoice), so no one invoice-level value exists.",
+      "oneOf": [
+        {"$ref": "#/$defs/invoice"},
+        {"type": "null"}
+      ]
+    },
+    "scope": {
+      "$ref": "#/$defs/scope"
+    },
+    "readability": {
+      "$ref": "#/$defs/readability"
+    },
+    "expected_issues": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/issue_code"},
+      "uniqueItems": true
+    },
+    "acceptance_policy": {
+      "$ref": "#/$defs/acceptance_policy"
+    },
+    "arithmetic": {
+      "$ref": "#/$defs/arithmetic"
+    },
+    "evidence": {
+      "type": "object",
+      "description": "Keyed by gold field path. A required field, a line-item part and a scope signal each get one entry.",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^(vendor_name|customer_name|invoice_number|invoice_date|due_date|currency|purchase_order_number|subtotal_amount|tax_amount|total_amount|line_items\\[[0-9]+\\]\\.(amount|quantity|unit_price)|scope_signals\\.[a-z_]+)$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/evidence_entry"
+      }
+    },
+    "annotation": {
+      "$ref": "#/$defs/annotation"
+    }
+  },
+  "$defs": {
+    "money": {
+      "type": "string",
+      "description": "A printed amount: two decimals, sign kept, no symbol, no thousands separator.",
+      "pattern": "^-?(0|[1-9][0-9]*)\\.[0-9]{2}$"
+    },
+    "money_or_null": {
+      "oneOf": [
+        {"$ref": "#/$defs/money"},
+        {"type": "null"}
+      ]
+    },
+    "printed_number": {
+      "type": "string",
+      "description": "A printed cell string as the page shows it, for example 2.40 or 6.",
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "printed_number_or_null": {
+      "oneOf": [
+        {"$ref": "#/$defs/printed_number"},
+        {"type": "null"}
+      ]
+    },
+    "iso_date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+    },
+    "issue_code": {
+      "enum": [
+        "LINE_AMOUNT_MISMATCH",
+        "SUBTOTAL_MISMATCH",
+        "TOTAL_MISMATCH",
+        "MISSING_REQUIRED_FIELD",
+        "INVALID_NUMBER",
+        "AMBIGUOUS_DATE",
+        "CURRENCY_UNCONFIRMED",
+        "UNREADABLE_FIELD",
+        "SCOPE_UNKNOWN",
+        "EVIDENCE_INSUFFICIENT",
+        "EVIDENCE_MISMATCH",
+        "STRUCTURE_UNCERTAIN",
+        "OUT_OF_SCOPE"
+      ]
+    },
+    "scope_reason": {
+      "enum": [
+        "PURCHASE_ORDER",
+        "CREDIT_NOTE",
+        "UNSUPPORTED_DOCUMENT_TYPE",
+        "MULTIPLE_INVOICES",
+        "NON_ENGLISH",
+        "NON_USD_CURRENCY",
+        "HAS_DISCOUNT",
+        "HAS_EXTRA_CHARGES",
+        "TAX_INCLUSIVE",
+        "PREPAYMENT_OR_PRIOR_BALANCE",
+        "UNSUPPORTED_TAX_LAYOUT",
+        "UNSUPPORTED_PRICING",
+        "UNSUPPORTED_NUMERIC_POLICY",
+        "TABLE_SPANS_PAGES",
+        "TOO_MANY_PAGES",
+        "TOO_MANY_LINES"
+      ]
+    },
+    "check_result": {
+      "enum": ["PASS", "FAIL", "NOT_APPLICABLE", "BLOCKED_MISSING_INPUT"]
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file_name", "sha256", "media_type", "page_count"],
+      "properties": {
+        "file_name": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "media_type": {"enum": ["application/pdf", "image/jpeg", "image/png"]},
+        "page_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "printing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["currency_header", "date_form", "tax_note", "currency_symbol"],
+      "properties": {
+        "currency_header": {
+          "description": "The printed currency header, for example \"Currency: USD\"; null when the page prints none.",
+          "oneOf": [
+            {"type": "string", "pattern": "^Currency: [A-Z]{3}$"},
+            {"type": "null"}
+          ]
+        },
+        "date_form": {"enum": ["USLONG"]},
+        "tax_note": {
+          "oneOf": [
+            {"type": "string", "minLength": 1},
+            {"type": "null"}
+          ]
+        },
+        "currency_symbol": {"type": "string", "minLength": 1}
+      }
+    },
+    "invoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice_number",
+        "invoice_date",
+        "due_date",
+        "vendor_name",
+        "customer_name",
+        "currency",
+        "document_type",
+        "subtotal_amount",
+        "tax_amount",
+        "total_amount",
+        "purchase_order_number",
+        "line_items",
+        "charges"
+      ],
+      "properties": {
+        "invoice_number": {
+          "description": "The printed invoice number. A purchase order number is never used here.",
+          "oneOf": [
+            {"type": "string", "minLength": 1},
+            {"type": "null"}
+          ]
+        },
+        "invoice_date": {
+          "oneOf": [
+            {"$ref": "#/$defs/iso_date"},
+            {"type": "null"}
+          ]
+        },
+        "due_date": {
+          "oneOf": [
+            {"$ref": "#/$defs/iso_date"},
+            {"type": "null"}
+          ]
+        },
+        "vendor_name": {"type": "string", "minLength": 1},
+        "customer_name": {"type": "string", "minLength": 1},
+        "currency": {
+          "oneOf": [
+            {"type": "string", "pattern": "^[A-Z]{3}$"},
+            {"type": "null"}
+          ]
+        },
+        "document_type": {"enum": ["invoice", "credit_note", "other"]},
+        "subtotal_amount": {"$ref": "#/$defs/money_or_null"},
+        "tax_amount": {
+          "description": "The printed tax. Null means the page prints no tax row; a printed 0.00 is the string \"0.00\".",
+          "$ref": "#/$defs/money_or_null"
+        },
+        "total_amount": {"$ref": "#/$defs/money_or_null"},
+        "purchase_order_number": {
+          "oneOf": [
+            {"type": "string", "minLength": 1},
+            {"type": "null"}
+          ]
+        },
+        "line_items": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/line_item"}
+        },
+        "charges": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/charge"}
+        }
+      }
+    },
+    "line_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "description", "quantity", "unit_price", "amount"],
+      "properties": {
+        "index": {"type": "integer", "minimum": 0},
+        "description": {"type": "string", "minLength": 1},
+        "quantity": {"$ref": "#/$defs/printed_number_or_null"},
+        "unit_price": {"$ref": "#/$defs/printed_number_or_null"},
+        "amount": {"$ref": "#/$defs/money"}
+      }
+    },
+    "charge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "amount", "kind"],
+      "properties": {
+        "label": {"type": "string", "minLength": 1},
+        "amount": {"$ref": "#/$defs/money"},
+        "kind": {"enum": ["discount", "charge"]}
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reasons", "signals"],
+      "properties": {
+        "status": {"enum": ["SUPPORTED", "UNSUPPORTED", "UNKNOWN"]},
+        "reasons": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/scope_reason"},
+          "uniqueItems": true
+        },
+        "signals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "document_type",
+            "invoice_count",
+            "language",
+            "currency_evidence",
+            "unit_price_basis",
+            "discount",
+            "additional_charges",
+            "prepayment_or_prior_balance",
+            "tax_presentation",
+            "table_layout",
+            "observed_row_count",
+            "table_pages"
+          ],
+          "properties": {
+            "document_type": {"enum": ["invoice", "credit_note"]},
+            "invoice_count": {"type": "integer", "minimum": 1},
+            "language": {"enum": ["en"]},
+            "currency_evidence": {"enum": ["explicit", "missing"]},
+            "unit_price_basis": {"enum": ["pre_tax", "tax_inclusive", "unknown"]},
+            "discount": {"enum": ["present", "absent"]},
+            "additional_charges": {"enum": ["present", "absent"]},
+            "prepayment_or_prior_balance": {"enum": ["present", "absent"]},
+            "tax_presentation": {"enum": ["single", "multiple", "inclusive", "missing"]},
+            "table_layout": {"enum": ["single_page", "spans_pages"]},
+            "observed_row_count": {"type": "integer", "minimum": 0},
+            "table_pages": {
+              "type": "array",
+              "items": {"type": "integer", "minimum": 1},
+              "uniqueItems": true
+            }
+          }
+        }
+      }
+    },
+    "readability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate", "verified", "note"],
+      "properties": {
+        "gate": {
+          "enum": ["clean_text", "image_readable", "image_degraded_unverified"]
+        },
+        "verified": {"type": "boolean"},
+        "note": {"type": "string", "minLength": 1}
+      }
+    },
+    "acceptance_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rules", "tax_rule", "upstream_validate", "decisions", "notes"],
+      "properties": {
+        "rules": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "A_line_amount",
+            "B_subtotal",
+            "C_total",
+            "D_required_fields"
+          ],
+          "properties": {
+            "A_line_amount": {"$ref": "#/$defs/check_result"},
+            "B_subtotal": {"$ref": "#/$defs/check_result"},
+            "C_total": {"$ref": "#/$defs/check_result"},
+            "D_required_fields": {"$ref": "#/$defs/check_result"}
+          }
+        },
+        "tax_rule": {"enum": ["APPLICABLE", "NOT_APPLICABLE"]},
+        "upstream_validate": {
+          "enum": ["APPLICABLE", "SKIPPED_DELIBERATE_CONFLICT", "OPTIONAL", "NOT_APPLICABLE"]
+        },
+        "decisions": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/issue_code"},
+          "uniqueItems": true
+        },
+        "notes": {"type": "string", "minLength": 1}
+      }
+    },
+    "arithmetic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lines",
+        "line_sum",
+        "printed_subtotal",
+        "recomputed_total",
+        "printed_total",
+        "tax_printed",
+        "charges_printed",
+        "delta_subtotal",
+        "delta_total"
+      ],
+      "properties": {
+        "lines": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/line_check"}
+        },
+        "line_sum": {"$ref": "#/$defs/money_or_null"},
+        "printed_subtotal": {"$ref": "#/$defs/money_or_null"},
+        "recomputed_total": {"$ref": "#/$defs/money_or_null"},
+        "printed_total": {"$ref": "#/$defs/money_or_null"},
+        "tax_printed": {"$ref": "#/$defs/money_or_null"},
+        "charges_printed": {"$ref": "#/$defs/money_or_null"},
+        "delta_subtotal": {
+          "description": "line_sum - printed_subtotal. A negative value means the printed subtotal is higher than the sum of the lines.",
+          "$ref": "#/$defs/money_or_null"
+        },
+        "delta_total": {
+          "description": "recomputed_total - printed_total. A negative value means the printed total is higher than the recomputed total.",
+          "$ref": "#/$defs/money_or_null"
+        }
+      }
+    },
+    "line_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "recomputed_amount", "printed_amount", "delta", "status"],
+      "properties": {
+        "index": {"type": "integer", "minimum": 0},
+        "recomputed_amount": {"$ref": "#/$defs/money_or_null"},
+        "printed_amount": {"$ref": "#/$defs/money"},
+        "delta": {"$ref": "#/$defs/money_or_null"},
+        "status": {"$ref": "#/$defs/check_result"}
+      }
+    },
+    "evidence_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "page", "text", "searched_pages", "verification"],
+      "properties": {
+        "status": {"enum": ["observed", "not_found", "unreadable", "ambiguous"]},
+        "page": {
+          "description": "1-based page number. Null when and only when the status is not_found.",
+          "oneOf": [
+            {"type": "integer", "minimum": 1},
+            {"type": "null"}
+          ]
+        },
+        "text": {
+          "oneOf": [
+            {"type": "string"},
+            {"type": "null"}
+          ]
+        },
+        "searched_pages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "integer", "minimum": 1},
+          "uniqueItems": true
+        },
+        "verification": {"const": "generator_recorded"},
+        "bbox_pt": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {"type": "number"},
+          "description": "Approximate box in PDF points, top-left origin: left, top, right, bottom."
+        },
+        "bbox_precision": {"enum": ["exact", "approximate", "unavailable"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "not_found"}}, "required": ["status"]},
+          "then": {
+            "properties": {
+              "page": {"type": "null"},
+              "text": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"status": {"const": "observed"}}, "required": ["status"]},
+          "then": {
+            "properties": {"page": {"type": "integer", "minimum": 1}}
+          }
+        }
+      ]
+    },
+    "annotation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "verification", "generated_by", "seed"],
+      "properties": {
+        "source": {"enum": ["generator_recorded", "human_reviewed"]},
+        "verification": {"enum": ["generator_recorded", "human_reviewed"]},
+        "generated_by": {"type": "string", "minLength": 1},
+        "seed": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}
