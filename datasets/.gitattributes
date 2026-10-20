@@ -1,0 +1,12 @@
+# The frozen sample set is reproduced byte for byte from manifest.json (T14),
+# so a checkout must keep the bytes the generator wrote.
+#
+#   * PDF, PNG and JPEG files are binary and are never converted.
+#   * JSON and text artifacts are text and must keep LF everywhere.
+#
+# This file lives in datasets/ and not in datasets/docuagents_v1/, so it is
+# not an artifact of the sample set and does not appear in manifest.json.
+.gitattributes text eol=lf
+docuagents_v1/** -text
+docuagents_v1/**/*.json text eol=lf
+docuagents_v1/**/*.txt text eol=lf

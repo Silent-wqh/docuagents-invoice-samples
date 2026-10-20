@@ -1,0 +1,37 @@
+Cedarworks Tools Inc INVOICE
+63 Riverside Avenue
+Spokane, WA 99201 Invoice #: INV-2026-1201
+Tel (509) 555-0129 | accounts@cedarworkstools.example Date: May 6, 2026
+EIN: 91-2455018 Due Date: June 5, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Larkspur Manufacturing Co
+19 Freight Road
+Columbus, OH 43215
+Description Qty Unit Price Amount
+Packing tape, 48 mm x 66 m 6 4.25 25.50
+Shipping labels, 100 sheets 4 12.75 51.00
+Corrugated cartons, 400 x 300 x 300 mm 25 2.40 60.00
+Stretch film, 500 mm x 300 m 2 34.50 69.00
+Bubble wrap, 1 m x 100 m 3 28.20 84.60
+Nitrile gloves, size L, box of 100 5 18.40 92.00
+Pallet strapping kit 1 44.00 44.00
+Toner cartridge, black 2 61.50 123.00
+Safety knife, retractable 10 7.35 73.50
+Document wallet, A4, pack of 25 8 9.60 76.80
+Shipping labels, 100 sheets 4 12.75 51.00
+Packing tape, 48 mm x 66 m 6 4.25 25.50
+Corrugated cartons, 400 x 300 x 300 mm 25 2.40 60.00
+Stretch film, 500 mm x 300 m 2 34.50 69.00
+Bubble wrap, 1 m x 100 m 3 28.20 84.60
+Nitrile gloves, size L, box of 100 5 18.40 92.00
+Pallet strapping kit 1 44.00 44.00
+Toner cartridge, black 2 61.50 123.00
+Safety knife, retractable 10 7.35 73.50
+Document wallet, A4, pack of 25 8 9.60 76.80
+Subtotal $1,398.80
+Sales Tax (6%) $83.93
+TOTAL $1,482.73
+Prices exclude tax.
+Page 1 of 1

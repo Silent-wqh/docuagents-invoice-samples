@@ -1,0 +1,46 @@
+Northline Supply LLC INVOICE
+4100 Commerce Parkway
+Columbus, OH 43228 Invoice #: INV-2026-1301
+Tel (614) 555-0142 | accounts@northlinesupply.example Date: May 20, 2026
+EIN: 31-4820195 Due Date: June 19, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Redwood Assembly Inc
+88 Industrial Drive
+Dallas, TX 75207
+Description Qty Unit Price Amount
+Corrugated insert, size 01, double wall, stackable, moisture resistant, recycled 2 3.10 6.20
+board
+Corrugated insert, size 02, double wall, stackable, moisture resistant, recycled 2 3.20 6.40
+board
+Corrugated insert, size 03, double wall, stackable, moisture resistant, recycled 2 3.30 6.60
+board
+Corrugated insert, size 04, double wall, stackable, moisture resistant, recycled 2 3.40 6.80
+board
+Corrugated insert, size 05, double wall, stackable, moisture resistant, recycled 2 3.50 7.00
+board
+Corrugated insert, size 06, double wall, stackable, moisture resistant, recycled 2 3.60 7.20
+board
+Corrugated insert, size 07, double wall, stackable, moisture resistant, recycled 2 3.70 7.40
+board
+Corrugated insert, size 08, double wall, stackable, moisture resistant, recycled 2 3.80 7.60
+board
+Corrugated insert, size 09, double wall, stackable, moisture resistant, recycled 2 3.90 7.80
+board
+Corrugated insert, size 10, double wall, stackable, moisture resistant, recycled 2 4.00 8.00
+board
+Corrugated insert, size 11, double wall, stackable, moisture resistant, recycled 2 4.10 8.20
+board
+Corrugated insert, size 12, double wall, stackable, moisture resistant, recycled 2 4.20 8.40
+board
+Corrugated insert, size 13, double wall, stackable, moisture resistant, recycled 2 4.30 8.60
+board
+Corrugated insert, size 14, double wall, stackable, moisture resistant, recycled 2 4.40 8.80
+board
+Corrugated insert, size 15, double wall, stackable, moisture resistant, recycled 2 4.50 9.00
+board
+Corrugated insert, size 16, double wall, stackable, moisture resistant, recycled 2 4.60 9.20
+board
+Continued on next page
+Page 1 of 2

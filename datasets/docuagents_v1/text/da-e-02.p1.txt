@@ -1,0 +1,20 @@
+Summit Fastener Supply INVOICE
+1450 Market Street
+Omaha, NE 68102 Invoice #: INV-2026-1802
+Tel (402) 555-0163 | ar@summitfastener.example Date: August 25, 2026
+EIN: 47-1180332 Due Date: September 24, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Alder Creek Mills
+35 Depot Lane
+Savannah, GA 31405
+Description Qty Unit Price Amount
+Shipping labels, 100 sheets 4 12.75 51.00
+Toner cartridge, black 2 61.50 123.00
+Subtotal $174.00
+Freight surcharge $35.00
+Sales Tax (6%) $12.54
+TOTAL $221.54
+Prices exclude tax.
+Page 1 of 1

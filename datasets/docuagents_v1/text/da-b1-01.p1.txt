@@ -1,0 +1,20 @@
+Northline Supply LLC INVOICE
+4100 Commerce Parkway
+Columbus, OH 43228 Invoice #: INV-2026-1501
+Tel (614) 555-0142 | accounts@northlinesupply.example Date: June 10, 2026
+EIN: 31-4820195 Due Date: July 10, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Tandem Works Inc
+600 Market Street
+Denver, CO 80202
+Description Qty Unit Price Amount
+Packing tape, 48 mm x 66 m 6 4.25 25.50
+Corrugated cartons, 400 x 300 x 300 mm 25 2.40 60.00
+Toner cartridge, black 2 61.50 123.00
+Subtotal $208.50
+Sales Tax (6%) $12.51
+TOTAL $221.01
+Prices exclude tax.
+Page 1 of 1

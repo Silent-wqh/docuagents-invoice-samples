@@ -1,0 +1,21 @@
+INVOICE Bluewater Carton Co
+BC
+Invoice #: INV-2026-1106
+Date: April 1, 2026 210 Harbor Boulevard
+Due Date: May 1, 2026 Memphis, TN 38103
+Terms: 30 days Tel (901) 555-0174 | billing@bluewatercarton.example
+Currency: USD EIN: 62-7743019
+BILL TO
+Redwood Assembly Inc
+88 Industrial Drive
+Dallas, TX 75207
+Description Qty Unit Price Amount
+Pallet strapping kit 1 44.00 44.00
+Corrugated cartons, 400 x 300 x 300 mm 25 2.40 60.00
+Shipping labels, 100 sheets 4 12.75 51.00
+Nitrile gloves, size L, box of 100 5 18.40 92.00
+Subtotal $247.00
+Sales Tax (6%) $14.82
+TOTAL $261.82
+Prices exclude tax.
+Page 1 of 1

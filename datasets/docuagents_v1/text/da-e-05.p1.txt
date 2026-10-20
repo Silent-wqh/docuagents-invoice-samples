@@ -1,0 +1,17 @@
+Harborline Industrial Co CREDIT NOTE
+27 Depot Lane
+Savannah, GA 31401 Credit Note No: CN-2026-0714
+Tel (912) 555-0188 | billing@harborlineindustrial.example Credit Date: September 15, 2026
+EIN: 58-2214907 Currency: USD
+CREDIT TO
+Kestrel Fabrication LLC
+512 Commerce Parkway
+Reno, NV 89502
+Description Qty Unit Price Amount
+Corrugated cartons, 400 x 300 x 300 mm 25 2.40 -60.00
+Shipping labels, 100 sheets 4 12.75 -51.00
+Subtotal -$111.00
+Sales Tax (6%) -$6.66
+TOTAL CREDIT -$117.66
+This credit note reverses the invoice named above.
+Page 1 of 1

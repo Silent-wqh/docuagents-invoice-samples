@@ -1,0 +1,19 @@
+Bluewater Carton Co INVOICE
+210 Harbor Boulevard
+Memphis, TN 38103 Invoice #: INV-2026-1604
+Tel (901) 555-0174 | billing@bluewatercarton.example Date: July 28, 2026
+EIN: 62-7743019 Due Date: August 27, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Larkspur Manufacturing Co
+19 Freight Road
+Columbus, OH 43215
+Description Qty Unit Price Amount
+Bubble wrap, 1 m x 100 m 2 25.00 50.00
+Safety knife, retractable 1 50.00 50.00
+Subtotal $100.00
+Sales Tax (6%) $6.00
+TOTAL $118.00
+Prices exclude tax.
+Page 1 of 1

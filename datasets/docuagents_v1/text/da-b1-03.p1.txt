@@ -1,0 +1,20 @@
+Bluewater Carton Co INVOICE
+210 Harbor Boulevard
+Memphis, TN 38103 Invoice #: INV-2026-1503
+Tel (901) 555-0174 | billing@bluewatercarton.example Date: June 12, 2026
+EIN: 62-7743019 Due Date: July 12, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Quarry Lane Systems
+240 Elm Street
+Omaha, NE 68105
+Description Qty Unit Price Amount
+Packing tape, 48 mm x 66 m 6 4.25 25.50
+Corrugated cartons, 400 x 300 x 300 mm 25 2.40 60.00
+Toner cartridge, black 2 61.50 123.00
+Subtotal $208.50
+Sales Tax (6%) $12.51
+TOTAL $221.01
+Prices exclude tax.
+Page 1 of 1

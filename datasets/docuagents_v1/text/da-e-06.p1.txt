@@ -1,0 +1,19 @@
+Summit Fastener Supply INVOICE
+1450 Market Street
+Omaha, NE 68102 Invoice #: INV-2026-1901
+Tel (402) 555-0163 | ar@summitfastener.example Date: September 22, 2026
+EIN: 47-1180332 Due Date: October 22, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Larkspur Manufacturing Co
+19 Freight Road
+Columbus, OH 43215
+Description Qty Unit Price Amount
+Packing tape, 48 mm x 66 m 6 4.25 25.50
+Shipping labels, 100 sheets 4 12.75 51.00
+Subtotal $76.50
+Sales Tax (6%) $4.59
+TOTAL $81.09
+Prices exclude tax.
+Page 1 of 1

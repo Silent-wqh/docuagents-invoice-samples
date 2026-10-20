@@ -1,0 +1,19 @@
+Cedarworks Tools Inc INVOICE
+63 Riverside Avenue
+Spokane, WA 99201 Invoice #: INV-2026-1701
+Tel (509) 555-0129 | accounts@cedarworkstools.example Date: August 4, 2026
+EIN: 91-2455018 Due Date: September 3, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Redwood Assembly Inc
+88 Industrial Drive
+Dallas, TX 75207
+Description Qty Unit Price Amount
+Packing tape, 48 mm x 66 m 6 4.25 25.50
+Shipping labels, 100 sheets 4 12.75 51.00
+Corrugated cartons, 400 x 300 x 300 mm 25 2.40 60.00
+Subtotal $136.50
+TOTAL $136.50
+Prices exclude tax.
+Page 1 of 1

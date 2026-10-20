@@ -1,0 +1,20 @@
+Cedarworks Tools Inc INVOICE
+63 Riverside Avenue
+Spokane, WA 99201 Invoice #: INV-2026-1505
+Tel (509) 555-0129 | accounts@cedarworkstools.example Date: June 14, 2026
+EIN: 91-2455018 Due Date: July 14, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Kestrel Fabrication LLC
+512 Commerce Parkway
+Reno, NV 89502
+Description Qty Unit Price Amount
+Packing tape, 48 mm x 66 m 6 4.25 25.50
+Corrugated cartons, 400 x 300 x 300 mm 25 2.40 60.00
+Toner cartridge, black 2 61.50 123.00
+Subtotal $208.50
+Sales Tax (6%) $12.51
+TOTAL $221.01
+Prices exclude tax.
+Page 1 of 1

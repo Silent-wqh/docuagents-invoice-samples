@@ -1,0 +1,19 @@
+Bluewater Carton Co INVOICE
+210 Harbor Boulevard
+Memphis, TN 38103 Invoice #: INV-2026-1902
+Tel (901) 555-0174 | billing@bluewatercarton.example Date: September 22, 2026
+EIN: 62-7743019 Due Date: October 22, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Larkspur Manufacturing Co
+19 Freight Road
+Columbus, OH 43215
+Description Qty Unit Price Amount
+Toner cartridge, black 2 61.50 123.00
+Document wallet, A4, pack of 25 8 9.60 76.80
+Subtotal $199.80
+Sales Tax (6%) $11.99
+TOTAL $211.79
+Prices exclude tax.
+Page 1 of 1

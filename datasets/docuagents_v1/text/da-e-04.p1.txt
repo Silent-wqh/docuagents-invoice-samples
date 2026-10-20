@@ -1,0 +1,38 @@
+Bluewater Carton Co INVOICE
+210 Harbor Boulevard
+Memphis, TN 38103 Invoice #: INV-2026-1804
+Tel (901) 555-0174 | billing@bluewatercarton.example Date: September 8, 2026
+EIN: 62-7743019 Due Date: October 8, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Redwood Assembly Inc
+88 Industrial Drive
+Dallas, TX 75207
+Description Qty Unit Price Amount
+Corrugated insert, size 01 2 3.10 6.20
+Corrugated insert, size 02 2 3.20 6.40
+Corrugated insert, size 03 2 3.30 6.60
+Corrugated insert, size 04 2 3.40 6.80
+Corrugated insert, size 05 2 3.50 7.00
+Corrugated insert, size 06 2 3.60 7.20
+Corrugated insert, size 07 2 3.70 7.40
+Corrugated insert, size 08 2 3.80 7.60
+Corrugated insert, size 09 2 3.90 7.80
+Corrugated insert, size 10 2 4.00 8.00
+Corrugated insert, size 11 2 4.10 8.20
+Corrugated insert, size 12 2 4.20 8.40
+Corrugated insert, size 13 2 4.30 8.60
+Corrugated insert, size 14 2 4.40 8.80
+Corrugated insert, size 15 2 4.50 9.00
+Corrugated insert, size 16 2 4.60 9.20
+Corrugated insert, size 17 2 4.70 9.40
+Corrugated insert, size 18 2 4.80 9.60
+Corrugated insert, size 19 2 4.90 9.80
+Corrugated insert, size 20 2 5.00 10.00
+Corrugated insert, size 21 2 5.10 10.20
+Corrugated insert, size 22 2 5.20 10.40
+Corrugated insert, size 23 2 5.30 10.60
+Corrugated insert, size 24 2 5.40 10.80
+Continued on next page
+Page 1 of 3

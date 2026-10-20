@@ -1,0 +1,19 @@
+Cedarworks Tools Inc INVOICE
+63 Riverside Avenue
+Spokane, WA 99201 Invoice #: INV-2026-1602
+Tel (509) 555-0129 | accounts@cedarworkstools.example Date: July 14, 2026
+EIN: 91-2455018 Due Date: August 13, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Alder Creek Mills
+35 Depot Lane
+Savannah, GA 31405
+Description Qty Unit Price Amount
+Nitrile gloves, size L, box of 100 2 9.00 81.00
+Document wallet, A4, pack of 25 1 50.00 50.00
+Subtotal $131.00
+Sales Tax (6%) $7.86
+TOTAL $138.86
+Prices exclude tax.
+Page 1 of 1
