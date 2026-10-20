@@ -12,6 +12,7 @@ Run:
 
 from __future__ import annotations
 
+import copy
 import json
 import re
 import sys
@@ -179,14 +180,19 @@ def _validate(value: Any, node: Dict[str, Any], root: Dict[str, Any], path: str)
 
     if "oneOf" in node:
         matches = 0
+        failures: List[str] = []
         for index, option in enumerate(node["oneOf"]):
             try:
                 _validate(value, option, root, path)
-            except SchemaError:
+            except SchemaError as exc:
+                failures.append(str(exc))
                 continue
             matches += 1
         if matches != 1:
-            _fail(path, f"matched {matches} of the oneOf options, expected exactly one")
+            # Name the inner reason: a bare "matched 0" hides which field the
+            # document actually got wrong.
+            detail = f"; first option failed: {failures[0]}" if failures else ""
+            _fail(path, f"matched {matches} of the oneOf options, expected exactly one{detail}")
 
     if "if" in node:
         try:
@@ -350,6 +356,119 @@ def test_all_gold_passes_the_schema(golds: Dict[str, Dict[str, Any]], schema: Di
             validate_schema(record, schema)
         except SchemaError as exc:  # pragma: no cover - the message carries the path
             pytest.fail(f"{doc_id}: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# The validator must reject a corrupted gold, not only accept a good one.
+#
+# These cases prove the checker is live.  A validator that silently accepted
+# everything would let test_all_gold_passes_the_schema pass on a broken gold,
+# so each case damages one field of a valid record and asserts a SchemaError
+# whose message names the damaged path.
+# ---------------------------------------------------------------------------
+
+
+def _corrupted(record: Dict[str, Any], damage) -> Dict[str, Any]:
+    """A deep copy of a valid gold with one deliberate defect."""
+    broken = copy.deepcopy(record)
+    damage(broken)
+    return broken
+
+
+def _rejection(broken: Dict[str, Any], schema: Dict[str, Any]) -> str:
+    """Assert that the validator rejects ``broken`` and return its message."""
+    try:
+        validate_schema(broken, schema)
+    except SchemaError as exc:
+        return str(exc)
+    pytest.fail("the validator accepted a corrupted gold")
+
+
+def test_validator_rejects_a_missing_required_field(
+    golds: Dict[str, Dict[str, Any]], schema: Dict[str, Any]
+) -> None:
+    record = golds["da-a1-01"]
+    validate_schema(record, schema)  # the unmodified record is valid
+
+    cases = {
+        "invoice.vendor_name": (lambda r: r["invoice"].pop("vendor_name"), "'vendor_name'"),
+        "scope.reasons": (lambda r: r["scope"].pop("reasons"), "'reasons'"),
+        "root.evidence": (lambda r: r.pop("evidence"), "'evidence'"),
+    }
+    for name, (damage, expected) in cases.items():
+        message = _rejection(_corrupted(record, damage), schema)
+        assert "missing required property" in message, (name, message)
+        assert expected in message, (name, message)
+
+
+def test_validator_rejects_a_wrong_field_type(
+    golds: Dict[str, Dict[str, Any]], schema: Dict[str, Any]
+) -> None:
+    record = golds["da-a1-01"]
+    validate_schema(record, schema)
+
+    cases = {
+        "invoice.invoice_number": (
+            lambda r: r["invoice"].__setitem__("invoice_number", 1101), "invoice_number"
+        ),
+        "invoice.tax_amount": (
+            lambda r: r["invoice"].__setitem__("tax_amount", 12.33), "tax_amount"
+        ),
+        "file.page_count": (
+            lambda r: r["file"].__setitem__("page_count", "1"), "page_count"
+        ),
+        "readability.verified": (
+            lambda r: r["readability"].__setitem__("verified", "no"), "verified"
+        ),
+    }
+    for name, (damage, expected) in cases.items():
+        message = _rejection(_corrupted(record, damage), schema)
+        assert "expected type" in message, (name, message)
+        assert expected in message, (name, message)
+
+
+def test_validator_rejects_an_undefined_enum_or_constant(
+    golds: Dict[str, Dict[str, Any]], schema: Dict[str, Any]
+) -> None:
+    record = golds["da-a1-01"]
+    validate_schema(record, schema)
+
+    cases = {
+        "schema_version": (lambda r: r.__setitem__("schema_version", 3), "expected const 2"),
+        "contract_version": (
+            lambda r: r.__setitem__("contract_version", "1.0"), "expected const '1.1'"
+        ),
+        "split": (lambda r: r.__setitem__("split", "train"), "'train' is not one of"),
+        "document_type": (
+            lambda r: r["invoice"].__setitem__("document_type", "receipt"),
+            "'receipt' is not one of",
+        ),
+        "evidence.status": (
+            lambda r: r["evidence"]["currency"].__setitem__("status", "seen"),
+            "'seen' is not one of",
+        ),
+    }
+    for name, (damage, expected) in cases.items():
+        message = _rejection(_corrupted(record, damage), schema)
+        assert expected in message, (name, message)
+
+
+def test_validator_keeps_its_cross_field_guards_live(
+    golds: Dict[str, Dict[str, Any]], schema: Dict[str, Any]
+) -> None:
+    """A not_found entry must not carry a page; an unknown property is refused."""
+    record = golds["da-a1-01"]
+    validate_schema(record, schema)
+
+    page = _rejection(
+        _corrupted(record, lambda r: r["evidence"]["purchase_order_number"].__setitem__("page", 1)),
+        schema,
+    )
+    assert ".evidence.purchase_order_number.page" in page
+    assert "expected type ['null']" in page
+
+    extra = _rejection(_corrupted(record, lambda r: r.__setitem__("extra", 1)), schema)
+    assert "unexpected property 'extra'" in extra
 
 
 def test_gold_header_matches_the_matrix(golds: Dict[str, Dict[str, Any]]) -> None:
