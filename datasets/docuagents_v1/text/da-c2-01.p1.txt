@@ -1,0 +1,19 @@
+Summit Fastener Supply INVOICE
+1450 Market Street
+Omaha, NE 68102 Invoice #: INV-2026-1603
+Tel (402) 555-0163 | ar@summitfastener.example Date: July 21, 2026
+EIN: 47-1180332 Due Date: August 20, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Quarry Lane Systems
+240 Elm Street
+Omaha, NE 68105
+Description Qty Unit Price Amount
+Stretch film, 500 mm x 300 m 2 25.00 50.00
+Pallet strapping kit 1 50.00 50.00
+Subtotal $110.00
+Sales Tax (6%) $6.00
+TOTAL $116.00
+Prices exclude tax.
+Page 1 of 1

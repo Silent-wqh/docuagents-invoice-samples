@@ -1,0 +1,19 @@
+INVOICE Bluewater Carton Co
+210 Harbor Boulevard
+Invoice #: INV-2026-1401 Memphis, TN 38103
+Date: June 2, 2026 Tel (901) 555-0174 | billing@bluewatercarton.example
+Due Date: July 2, 2026 EIN: 62-7743019
+Terms: 30 days
+Currency: USD
+BILL TO
+Alder Creek Mills
+35 Depot Lane
+Savannah, GA 31405
+Description Qty Unit Price Amount
+Document wallet, A4, pack of 25 8 9.60 76.80
+Safety knife, retractable 10 7.35 73.50
+Subtotal $150.30
+Sales Tax (Exempt) $0.00
+TOTAL $150.30
+Prices exclude tax.
+Page 1 of 1

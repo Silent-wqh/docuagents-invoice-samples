@@ -1,0 +1,19 @@
+Cedarworks Tools Inc INVOICE
+63 Riverside Avenue
+Spokane, WA 99201 Invoice #: INV-2026-1803
+Tel (509) 555-0129 | accounts@cedarworkstools.example Date: September 1, 2026
+EIN: 91-2455018 Due Date: October 1, 2026
+Terms: 30 days
+Currency: CAD
+BILL TO
+Quarry Lane Systems
+240 Elm Street
+Omaha, NE 68105
+Description Qty Unit Price Amount
+Packing tape, 48 mm x 66 m 6 4.25 25.50
+Bubble wrap, 1 m x 100 m 3 28.20 84.60
+Subtotal $110.10
+GST (5%) $5.51
+TOTAL $115.61
+Prices exclude tax.
+Page 1 of 1

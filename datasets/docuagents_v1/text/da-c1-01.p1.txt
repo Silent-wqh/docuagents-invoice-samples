@@ -1,0 +1,19 @@
+Northline Supply LLC INVOICE
+4100 Commerce Parkway
+Columbus, OH 43228 Invoice #: INV-2026-1601
+Tel (614) 555-0142 | accounts@northlinesupply.example Date: July 7, 2026
+EIN: 31-4820195 Due Date: August 6, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Quarry Lane Systems
+240 Elm Street
+Omaha, NE 68105
+Description Qty Unit Price Amount
+Pallet strapping kit 3 5.00 51.00
+Shipping labels, 100 sheets 1 25.00 25.00
+Subtotal $76.00
+Sales Tax (6%) $4.56
+TOTAL $80.56
+Prices exclude tax.
+Page 1 of 1

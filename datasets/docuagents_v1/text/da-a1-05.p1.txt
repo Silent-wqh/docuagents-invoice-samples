@@ -1,0 +1,20 @@
+Cedarworks Tools Inc INVOICE
+63 Riverside Avenue
+Spokane, WA 99201 Invoice #: INV-2026-1105
+Tel (509) 555-0129 | accounts@cedarworkstools.example Date: March 16, 2026
+EIN: 91-2455018 Due Date: April 15, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Quarry Lane Systems
+240 Elm Street
+Omaha, NE 68105
+Description Qty Unit Price Amount
+Document wallet, A4, pack of 25 8 9.60 76.80
+Toner cartridge, black 2 61.50 123.00
+Bubble wrap, 1 m x 100 m 3 28.20 84.60
+Subtotal $284.40
+Sales Tax (6%) $17.06
+TOTAL $301.46
+Prices exclude tax.
+Page 1 of 1

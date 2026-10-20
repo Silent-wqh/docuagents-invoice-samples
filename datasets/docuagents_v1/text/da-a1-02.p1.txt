@@ -1,0 +1,20 @@
+INVOICE Harborline Industrial Co
+27 Depot Lane
+Invoice #: INV-2026-1102 Savannah, GA 31401
+Date: February 3, 2026 Tel (912) 555-0188 | billing@harborlineindustrial.example
+Due Date: March 5, 2026 EIN: 58-2214907
+Terms: 30 days
+Currency: USD
+BILL TO
+Larkspur Manufacturing Co
+19 Freight Road
+Columbus, OH 43215
+Description Qty Unit Price Amount
+Bubble wrap, 1 m x 100 m 3 28.20 84.60
+Nitrile gloves, size L, box of 100 5 18.40 92.00
+Pallet strapping kit 1 44.00 44.00
+Subtotal $220.60
+Sales Tax (6%) $13.24
+TOTAL $233.84
+Prices exclude tax.
+Page 1 of 1

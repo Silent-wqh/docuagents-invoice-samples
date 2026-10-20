@@ -1,0 +1,46 @@
+Cedarworks Tools Inc INVOICE
+63 Riverside Avenue
+Spokane, WA 99201 Invoice #: INV-2026-1302
+Tel (509) 555-0129 | accounts@cedarworkstools.example Date: May 27, 2026
+EIN: 91-2455018 Due Date: June 26, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Kestrel Fabrication LLC
+512 Commerce Parkway
+Reno, NV 89502
+Description Qty Unit Price Amount
+Corrugated insert, size 01, double wall, stackable, moisture resistant, recycled 2 3.10 6.20
+board
+Corrugated insert, size 02, double wall, stackable, moisture resistant, recycled 2 3.20 6.40
+board
+Corrugated insert, size 03, double wall, stackable, moisture resistant, recycled 2 3.30 6.60
+board
+Corrugated insert, size 04, double wall, stackable, moisture resistant, recycled 2 3.40 6.80
+board
+Corrugated insert, size 05, double wall, stackable, moisture resistant, recycled 2 3.50 7.00
+board
+Corrugated insert, size 06, double wall, stackable, moisture resistant, recycled 2 3.60 7.20
+board
+Corrugated insert, size 07, double wall, stackable, moisture resistant, recycled 2 3.70 7.40
+board
+Corrugated insert, size 08, double wall, stackable, moisture resistant, recycled 2 3.80 7.60
+board
+Corrugated insert, size 09, double wall, stackable, moisture resistant, recycled 2 3.90 7.80
+board
+Corrugated insert, size 10, double wall, stackable, moisture resistant, recycled 2 4.00 8.00
+board
+Corrugated insert, size 11, double wall, stackable, moisture resistant, recycled 2 4.10 8.20
+board
+Corrugated insert, size 12, double wall, stackable, moisture resistant, recycled 2 4.20 8.40
+board
+Corrugated insert, size 13, double wall, stackable, moisture resistant, recycled 2 4.30 8.60
+board
+Corrugated insert, size 14, double wall, stackable, moisture resistant, recycled 2 4.40 8.80
+board
+Corrugated insert, size 15, double wall, stackable, moisture resistant, recycled 2 4.50 9.00
+board
+Corrugated insert, size 16, double wall, stackable, moisture resistant, recycled 2 4.60 9.20
+board
+Continued on next page
+Page 1 of 2

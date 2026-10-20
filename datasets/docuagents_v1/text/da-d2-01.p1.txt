@@ -1,0 +1,20 @@
+INVOICE Ridgeline Paper & Packaging
+RP
+Date: August 11, 2026
+Due Date: September 10, 2026 900 Elm Street
+Order No: PO-48213 Denver, CO 80204
+Terms: 30 days Tel (303) 555-0117 | invoices@ridgelinepaper.example
+Currency: USD EIN: 84-3902116
+BILL TO
+Tandem Works Inc
+600 Market Street
+Denver, CO 80202
+Description Qty Unit Price Amount
+Nitrile gloves, size L, box of 100 5 18.40 92.00
+Toner cartridge, black 2 61.50 123.00
+Document wallet, A4, pack of 25 8 9.60 76.80
+Subtotal $291.80
+Sales Tax (6%) $17.51
+TOTAL $309.31
+Prices exclude tax.
+Page 1 of 1

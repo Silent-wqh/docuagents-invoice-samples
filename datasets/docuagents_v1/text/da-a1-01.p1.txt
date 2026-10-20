@@ -1,0 +1,21 @@
+Northline Supply LLC INVOICE
+4100 Commerce Parkway
+Columbus, OH 43228 Invoice #: INV-2026-1101
+Tel (614) 555-0142 | accounts@northlinesupply.example Date: January 12, 2026
+EIN: 31-4820195 Due Date: February 11, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Kestrel Fabrication LLC
+512 Commerce Parkway
+Reno, NV 89502
+Description Qty Unit Price Amount
+Packing tape, 48 mm x 66 m 6 4.25 25.50
+Shipping labels, 100 sheets 4 12.75 51.00
+Corrugated cartons, 400 x 300 x 300 mm 25 2.40 60.00
+Stretch film, 500 mm x 300 m 2 34.50 69.00
+Subtotal $205.50
+Sales Tax (6%) $12.33
+TOTAL $217.83
+Prices exclude tax.
+Page 1 of 1

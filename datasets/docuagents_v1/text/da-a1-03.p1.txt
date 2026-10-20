@@ -1,0 +1,21 @@
+Bluewater Carton Co INVOICE
+210 Harbor Boulevard Invoice #: INV-2026-1103
+Memphis, TN 38103 Date: February 17, 2026
+Tel (901) 555-0174 | billing@bluewatercarton.example Due Date: March 19, 2026
+EIN: 62-7743019 Terms: 30 days
+Currency: USD
+BILL TO
+Tandem Works Inc
+600 Market Street
+Denver, CO 80202
+Description Qty Unit Price Amount
+Toner cartridge, black 2 61.50 123.00
+Safety knife, retractable 10 7.35 73.50
+Document wallet, A4, pack of 25 8 9.60 76.80
+Shipping labels, 100 sheets 4 12.75 51.00
+Packing tape, 48 mm x 66 m 6 4.25 25.50
+Subtotal $349.80
+Sales Tax (6%) $20.99
+TOTAL $370.79
+Prices exclude tax.
+Page 1 of 1

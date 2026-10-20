@@ -1,0 +1,19 @@
+Bluewater Carton Co INVOICE
+210 Harbor Boulevard
+Memphis, TN 38103 Invoice #: INV-2026-1506
+Tel (901) 555-0174 | billing@bluewatercarton.example Date: June 15, 2026
+EIN: 62-7743019 Due Date: July 15, 2026
+Terms: 30 days
+Currency: USD
+BILL TO
+Larkspur Manufacturing Co
+19 Freight Road
+Columbus, OH 43215
+Description Qty Unit Price Amount
+Packing tape, 48 mm x 66 m 6 4.25 25.50
+Corrugated cartons, 400 x 300 x 300 mm 25 2.40 60.00
+Subtotal $85.50
+Sales Tax (6%) $5.13
+TOTAL $90.63
+Prices exclude tax.
+Page 1 of 1
