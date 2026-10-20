@@ -811,6 +811,19 @@ def test_the_cli_entry_point_installs_the_guard(tmp_path: Path) -> None:
     assert not offline.guard_installed()
 
 
+def test_check_without_reference_is_a_usage_error(capsys: pytest.CaptureFixture[str]) -> None:
+    # ``--out`` has a default, so ``--check`` alone reaches the usage branch.
+    assert not offline.guard_installed()
+    try:
+        code = generate.main(["--check"])
+        assert code == 2
+        assert offline.guard_installed()
+    finally:
+        offline.uninstall_network_guard()
+    assert "--reference" in capsys.readouterr().err
+    assert not offline.guard_installed()
+
+
 def test_the_package_generator_uses_no_network_client() -> None:
     import ast
 
