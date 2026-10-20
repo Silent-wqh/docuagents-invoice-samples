@@ -31,6 +31,7 @@ tests pass a deterministic placeholder hash.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -950,8 +951,6 @@ def placeholder_file_meta(spec: DocSpec, page_count: int) -> Dict[str, Any]:
     The SHA-256 is the digest of ``"placeholder:<doc_id>"``.  It is not the
     digest of a real file, and T14 must replace it with the rendered bytes.
     """
-    import hashlib
-
     media = "application/pdf" if spec.render.mode == "pdf" else (
         "image/png" if spec.render.fmt == "png" else "image/jpeg"
     )
@@ -966,8 +965,9 @@ def placeholder_file_meta(spec: DocSpec, page_count: int) -> Dict[str, Any]:
 
 def build_gold_for_row(row: matrix.Row) -> Dict[str, Any]:
     """Build and return the gold for one matrix row, with placeholder file_meta."""
-    from .build import build_spec
     from generator.layout import build_pages
+
+    from .build import build_spec
 
     spec = build_spec(row)
     pages = build_pages(spec)
