@@ -54,6 +54,14 @@ CENT = Decimal("0.01")
 #: difference; a larger difference is a real conflict.
 LINE_TOLERANCE = CENT
 
+#: Two branches for rule A (T07 defect DEF-01).  When the printed unit price
+#: carries more than two decimals, an unrounded source price exists, so a
+#: one-cent display difference is explained by rounding.  When it carries two
+#: decimals, the price is already the source value and the comparison is
+#: strict: any difference is a real conflict.  None of the 30 main samples
+#: prints more than two decimals, so every one of them takes the strict branch.
+ROUNDING_PRICE_DECIMALS = 2
+
 #: Media types the sample set may produce.
 MEDIA_TYPES = ("application/pdf", "image/jpeg", "image/png")
 
@@ -325,6 +333,89 @@ def _scope(signals: Mapping[str, Any], pages: Sequence[Page]) -> Tuple[str, List
 
 
 # ---------------------------------------------------------------------------
+# Rule A: the two-branch price policy (T07 defect DEF-01)
+# ---------------------------------------------------------------------------
+
+
+def printed_price_precision(text: Optional[str]) -> int:
+    """The number of printed decimals of a unit price cell.
+
+    ``"2.40"`` -> 2, ``"0.334"`` -> 3, ``"5"`` -> 0.  A value that cannot be
+    read as a decimal keeps the two-decimal rule, so a broken cell is never
+    silently promoted to the lenient branch.
+    """
+    if text is None:
+        raise GoldError("a unit price cell is missing")
+    cleaned = str(text).strip().replace(",", "").replace("$", "")
+    if "." not in cleaned:
+        return 0
+    return len(cleaned.split(".", 1)[1])
+
+
+def evaluate_line_amount(
+    quantity: Optional[str],
+    unit_price: Optional[str],
+    printed_amount: Decimal,
+    *,
+    credit: bool = False,
+) -> Dict[str, Any]:
+    """Decide rule A for one printed line, with the price-precision branch.
+
+    Args:
+        quantity: the printed quantity cell, or ``None``.
+        unit_price: the printed unit price cell, or ``None``.
+        printed_amount: the positive printed line amount.
+        credit: the document is a credit note; magnitudes are compared.
+
+    Returns:
+        ``{"branch", "status", "delta", "unit_price_precision", "reason"}``.
+
+    The rounding branch accepts a difference of at most one cent and states
+    the printed unit price it relied on.  The strict branch accepts only an
+    exact match, because a two-decimal price is the source value.
+    """
+    if quantity is None or unit_price is None:
+        return {
+            "branch": None,
+            "status": "NOT_APPLICABLE",
+            "delta": None,
+            "unit_price_precision": None,
+            "reason": None,
+        }
+    qty = Decimal(str(quantity).strip().replace(",", ""))
+    unit = Decimal(str(unit_price).strip().replace("$", "").replace(",", ""))
+    precision = printed_price_precision(str(unit_price))
+    recomputed = matrix.round_money(qty * unit)
+    # A credit note prints its amounts negative; rule A compares magnitudes,
+    # so the recomputed amount takes the document's sign first.
+    signed = -recomputed if credit else recomputed
+    delta = matrix.round_money(signed - printed_amount)
+    if precision > ROUNDING_PRICE_DECIMALS:
+        ok = abs(delta) <= LINE_TOLERANCE
+        reason = (
+            f"the printed unit price {unit_price} carries {precision} decimals, so an "
+            f"unrounded source price can explain the {delta} display difference "
+            f"(rounding branch)"
+            if ok and delta != 0
+            else None
+        )
+        return {
+            "branch": "rounding",
+            "status": "PASS" if ok else "FAIL",
+            "delta": _money_text(delta),
+            "unit_price_precision": precision,
+            "reason": reason,
+        }
+    return {
+        "branch": "strict",
+        "status": "PASS" if delta == 0 else "FAIL",
+        "delta": _money_text(delta),
+        "unit_price_precision": precision,
+        "reason": None,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Arithmetic
 # ---------------------------------------------------------------------------
 
@@ -350,6 +441,7 @@ def _evaluate(
 
     line_checks: List[Dict[str, Any]] = []
     line_failures = 0
+    rounding_branch = 0
     for item in lines:
         qty = None if item["quantity"] is None else Decimal(item["quantity"])
         unit = None if item["unit_price"] is None else Decimal(item["unit_price"])
@@ -358,11 +450,16 @@ def _evaluate(
             recomputed = None
             delta = None
             status = "NOT_APPLICABLE"
+            branch = None
         else:
             recomputed = matrix.round_money(qty * unit)
             signed = -recomputed if credit else recomputed
             delta = matrix.round_money(signed - printed)
-            status = "PASS" if abs(delta) <= LINE_TOLERANCE else "FAIL"
+            decision = evaluate_line_amount(item["quantity"], item["unit_price"], printed, credit=credit)
+            status = decision["status"]
+            branch = decision["branch"]
+            if branch == "rounding":
+                rounding_branch += 1
         if status == "FAIL":
             line_failures += 1
         line_checks.append(
@@ -436,7 +533,7 @@ def _evaluate(
         "delta_total": None if (printed_total is None or recomputed_total is None)
         else _money_text(recomputed_total - printed_total),
     }
-    return arithmetic, checks, issues
+    return arithmetic, checks, issues, rounding_branch
 
 
 # ---------------------------------------------------------------------------
@@ -583,6 +680,7 @@ def build_gold(spec: DocSpec, rendered_pages: Sequence[Page], file_meta: Mapping
     )
 
     invoice: Optional[Dict[str, Any]]
+    rounding_branch = 0
     if spec.kind == "multi_invoice":
         invoice = None
         arithmetic = {
@@ -611,7 +709,7 @@ def build_gold(spec: DocSpec, rendered_pages: Sequence[Page], file_meta: Mapping
             row for row in summary
             if not _is_subtotal_label(row[0]) and not _is_total_label(row[0]) and not _is_tax_label(row[0])
         ]
-        arithmetic, checks, issues = _evaluate(
+        arithmetic, checks, issues, rounding_branch = _evaluate(
             items, summary, number, _parse_date(issue_text), vendor_name, currency, spec.kind
         )
         tax_amount = (
@@ -770,6 +868,12 @@ def build_gold(spec: DocSpec, rendered_pages: Sequence[Page], file_meta: Mapping
         "decisions": issues,
         "notes": _policy_note(spec.kind, checks, invoice),
     }
+    if rounding_branch:
+        acceptance_policy["notes"] = (
+            f"{rounding_branch} line(s) use the rounding branch: the printed unit price "
+            f"carries more than {ROUNDING_PRICE_DECIMALS} decimals. "
+            + acceptance_policy["notes"]
+        )
 
     labels = row.label() if row is not None else {
         "split": "unassigned", "class": "?", "subclass": "?",
@@ -980,11 +1084,14 @@ __all__ = [
     "LINE_TOLERANCE",
     "MEDIA_TYPES",
     "REQUIRED_FIELDS",
+    "ROUNDING_PRICE_DECIMALS",
     "build_gold",
     "build_gold_for_row",
+    "evaluate_line_amount",
     "parse_line_items",
     "parse_meta",
     "parse_printed_money",
     "parse_summary_rows",
     "placeholder_file_meta",
+    "printed_price_precision",
 ]
