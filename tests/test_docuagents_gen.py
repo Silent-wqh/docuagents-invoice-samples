@@ -252,6 +252,24 @@ def test_split_is_fixed_at_ten_dev_and_twenty_test() -> None:
     assert set(dev) | set(test) == set(matrix.SPLIT)
 
 
+def test_no_vendor_crosses_the_split_boundary() -> None:
+    """Sample plan §6.3: no vendor entity appears in both dev and test.
+
+    The child invoices of the multi-invoice document print their own vendor
+    too, so they count as part of that document's split.
+    """
+    by_split: Dict[str, set] = {"dev": set(), "test": set()}
+    for row in matrix.ROWS:
+        by_split[row.split].add(matrix.VENDORS[row.vendor].name)
+        for child in row.children:
+            by_split[row.split].add(matrix.VENDORS[child.vendor].name)
+
+    assert not by_split["dev"] & by_split["test"], sorted(by_split["dev"] & by_split["test"])
+    # Two suppliers per split at least: a single supplier would hide leaks.
+    assert len(by_split["dev"]) >= 2
+    assert len(by_split["test"]) >= 2
+
+
 def test_classes_a_to_d_are_supported_and_e_is_unsupported() -> None:
     for row in matrix.ROWS:
         if row.klass in "ABCD":
@@ -309,19 +327,32 @@ def test_a3_construction_matches_its_frozen_definition(pages: Dict[str, Any]) ->
         )
         assert "Subtotal" in page_two_text
         assert "TOTAL" in page_two_text
-        assert row.line_count == matrix.A3_LINE_COUNT == 28
-        assert row.layout.rows_per_page == matrix.A3_ROWS_PER_PAGE == 28
+        assert row.line_count == matrix.A3_LINE_COUNT <= 20
+        assert row.layout.rows_per_page == matrix.A3_ROWS_PER_PAGE
+        # The controlled lever is real: every description prints on two lines.
+        wrapped = [op.text for op in rendered[0].ops if getattr(op, "text", "") == "board"]
+        assert len(wrapped) == row.line_count, doc_id
 
 
 def test_a3_candidate_enumeration_is_bounded_and_names_the_frozen_parameters() -> None:
     candidates = build.a3_candidates()
     assert 1 <= len(candidates) <= 200
-    frozen = [c for c in candidates if c["rows_per_page"] == 28 and c["line_count"] == 28]
+    assert all(c["line_count"] <= 20 for c in candidates)
+    frozen = [
+        c for c in candidates
+        if c["rows_per_page"] == matrix.A3_ROWS_PER_PAGE
+        and c["line_count"] == matrix.A3_LINE_COUNT
+        and c["description_form"] == "wrapped"
+    ]
     assert len(frozen) == 1
     assert frozen[0]["passed"] is True
     assert frozen[0]["pages"] == 2
-    assert frozen[0]["rows_per_page_measured"] == [28, 0]
+    assert frozen[0]["rows_per_page_measured"] == [matrix.A3_LINE_COUNT, 0]
     assert frozen[0]["totals_page"] == 2
+    # The frozen parameters are the first candidate, in the fixed order, that
+    # passes the whole A3 definition.
+    first_passing = next(index for index, c in enumerate(candidates) if c["passed"])
+    assert candidates[first_passing] is frozen[0]
 
 
 def test_subseeds_are_stable_and_do_not_use_the_process_hash() -> None:
@@ -560,6 +591,8 @@ def test_gold_recomputes_the_scope_gates_from_the_matrix(golds: Dict[str, Dict[s
 
 def test_a4_records_a_printed_zero_as_zero_not_missing(golds: Dict[str, Dict[str, Any]]) -> None:
     record = golds["da-a4-01"]
+    assert matrix.BY_ID["da-a4-01"].tax_label == "Sales Tax (Exempt)"
+    assert matrix.BY_ID["da-a4-01"].tax_rate == Decimal("0.00")
     assert record["invoice"]["tax_amount"] == "0.00"
     assert record["invoice"]["total_amount"] == record["invoice"]["subtotal_amount"]
     assert record["acceptance_policy"]["tax_rule"] == "APPLICABLE"
@@ -569,12 +602,119 @@ def test_a4_records_a_printed_zero_as_zero_not_missing(golds: Dict[str, Dict[str
     assert record["scope"]["signals"]["tax_presentation"] == "single"
 
 
+def test_a2_is_twenty_lines_on_one_page(pages: Dict[str, Any], golds: Dict[str, Dict[str, Any]]) -> None:
+    row = matrix.BY_ID["da-a2-01"]
+    assert row.line_count == 20
+    rendered = pages["da-a2-01"]
+    assert len(rendered) == 1
+    assert sum(len(table.rows) for table in rendered[0].tables) == 20
+    record = golds["da-a2-01"]
+    assert len(record["invoice"]["line_items"]) == 20
+    assert record["scope"]["signals"]["table_layout"] == "single_page"
+    assert record["acceptance_policy"]["rules"]["A_line_amount"] == "PASS"
+
+
+def test_at_least_one_a1_references_a_purchase_order(golds: Dict[str, Dict[str, Any]]) -> None:
+    rows = [row for row in matrix.ROWS if row.subclass == "A1" and row.po_number]
+    assert rows, "no A1 document prints a normal purchase order reference"
+    assert matrix.BY_ID["da-d2-01"].po_number not in {row.po_number for row in rows}
+    for row in rows:
+        entry = golds[row.doc_id]["evidence"]["purchase_order_number"]
+        assert entry["status"] == "observed", row.doc_id
+        assert entry["text"] == row.po_number, row.doc_id
+        assert golds[row.doc_id]["invoice"]["purchase_order_number"] == row.po_number
+
+
+# ---------------------------------------------------------------------------
+# Specs: degradation and medium per subclass (sample plan §6.1)
+# ---------------------------------------------------------------------------
+
+
+def test_c1_has_one_pdf_and_one_mild_scan(pages: Dict[str, Any], golds: Dict[str, Dict[str, Any]]) -> None:
+    from generator.degrade import SCAN_KINDS
+
+    pdf_row = matrix.BY_ID["da-c1-01"]
+    scan_row = matrix.BY_ID["da-c1-02"]
+    assert pdf_row.render_mode == "pdf"
+    assert len(pages["da-c1-01"]) == 1
+    assert golds["da-c1-01"]["file"]["media_type"] == "application/pdf"
+
+    assert scan_row.render_mode == "image"
+    assert scan_row.render_fmt == "png"
+    assert len(scan_row.degradations) == 1
+    kind, severity = scan_row.degradations[0]
+    assert kind in SCAN_KINDS
+    assert severity == "mild"
+    assert scan_row.legibility == "image_readable"
+    assert golds["da-c1-02"]["file"]["media_type"] == "image/png"
+
+    # The deliberate conflict survives the change of medium.
+    record = golds["da-c1-02"]
+    failing = [name for name, value in record["acceptance_policy"]["rules"].items() if value == "FAIL"]
+    assert failing == ["A_line_amount"]
+    first = record["arithmetic"]["lines"][0]
+    assert first["printed_amount"] == "81.00"
+    assert first["recomputed_amount"] == "18.00"
+    assert first["delta"] == "-63.00"
+    assert record["expected_issues"] == ["LINE_AMOUNT_MISMATCH"]
+
+
+def test_b1_is_scan_and_b2_is_photo_with_plan_grades(specs: Dict[str, DocSpec]) -> None:
+    from generator.degrade import PHOTO_KINDS, SCAN_KINDS
+
+    def severities(subclass: str) -> List[str]:
+        return [
+            row.degradations[0][1]
+            for row in matrix.ROWS
+            if row.subclass == subclass
+        ]
+
+    for row in matrix.ROWS:
+        if row.subclass == "B1":
+            spec = specs[row.doc_id]
+            assert spec.render.mode == "image", row.doc_id
+            assert spec.render.fmt == "png", row.doc_id
+            kind, severity = row.degradations[0]
+            assert kind in SCAN_KINDS, (row.doc_id, kind)
+            assert severity in ("mild", "moderate"), (row.doc_id, severity)
+            assert row.source_family == "degraded_scan", row.doc_id
+            assert row.legibility == "image_readable", row.doc_id
+        elif row.subclass == "B2":
+            spec = specs[row.doc_id]
+            assert spec.render.mode == "image", row.doc_id
+            assert spec.render.fmt == "jpg", row.doc_id
+            kind, severity = row.degradations[0]
+            assert kind in PHOTO_KINDS, (row.doc_id, kind)
+            assert severity in ("mild", "moderate"), (row.doc_id, severity)
+            assert row.source_family == "degraded_photo", row.doc_id
+            assert row.legibility == "image_readable", row.doc_id
+
+    # Three documents per subclass, covering both plan grades.
+    assert len(severities("B1")) == 3 and set(severities("B1")) == {"mild", "moderate"}
+    assert len(severities("B2")) == 3 and set(severities("B2")) == {"mild", "moderate"}
+
+
+def test_b3_keeps_the_two_severe_renders() -> None:
+    from generator.degrade import PHOTO_KINDS, SCAN_KINDS
+
+    b3 = [row for row in matrix.ROWS if row.subclass == "B3"]
+    assert len(b3) == 2
+    assert all(row.degradations[0][1] == "severe" for row in b3)
+    assert all(row.legibility == "image_degraded_unverified" for row in b3)
+    photo = [row for row in b3 if row.degradations[0][0] in PHOTO_KINDS]
+    scan = [row for row in b3 if row.degradations[0][0] in SCAN_KINDS]
+    assert len(photo) == 1 and len(scan) == 1
+    assert photo[0].render_fmt == "jpg"
+    assert scan[0].render_fmt == "png"
+
+
 def test_a3_places_all_lines_on_page_one_and_the_totals_on_page_two(
     golds: Dict[str, Dict[str, Any]],
 ) -> None:
     record = golds["da-a3-01"]
     assert record["file"]["page_count"] == 2
-    assert len(record["invoice"]["line_items"]) == 28
+    assert len(record["invoice"]["line_items"]) == matrix.A3_LINE_COUNT
+    assert len(record["invoice"]["line_items"]) <= 20
     for item in record["invoice"]["line_items"]:
         assert record["evidence"][f"line_items[{item['index']}].amount"]["page"] == 1
     for field in ("subtotal_amount", "tax_amount", "total_amount"):

@@ -286,18 +286,51 @@ def build_all(rows: Iterable[matrix.Row] | None = None) -> List[Tuple[matrix.Row
 #: The A3 definition, unchanged: two printed pages, every line item on the
 #: first page, no line-item cell on the second page, and the complete
 #: subtotal / tax / total block on the second page.
+#:
+#: Sample plan §6.1 caps A3 at 20 lines.  ``rows_per_page`` alone cannot split
+#: a 20-line table into two pages, so the enumeration also moves the printed
+#: *row height*: every A3 description is long enough to wrap onto two lines
+#: inside the description column (``matrix.a3_items``).  That is the only
+#: controlled lever; no upstream layout parameter is changed.
+#:
+#: Order: ``rows_per_page`` ascending, then ``line_count`` ascending, then the
+#: description form (one-line, then wrapped).  At most 200 candidates.
 A3_ROWS_PER_PAGE_RANGE = range(18, 31)
-A3_LINE_COUNT_RANGE = range(24, 39)
+A3_LINE_COUNT_RANGE = range(14, 21)
+
+#: Description form of a candidate: short (printed on one line) or detailed
+#: (wraps onto two lines and doubles the height of the row).
+A3_DESCRIPTION_FORMS = ("single_line", "wrapped")
 
 
-def _a3_template(rows_per_page: int, line_count: int) -> matrix.Row:
-    """The A3 construction with the two parameters under test."""
+def _a3_items(line_count: int, form: str) -> Tuple[matrix.Item, ...]:
+    if form == "single_line":
+        return matrix.insert_lines(line_count)
+    if form == "wrapped":
+        return matrix.a3_items(line_count)
+    raise BuildError(f"unknown A3 description form {form!r}")
+
+
+def _a3_template(rows_per_page: int, line_count: int, form: str = "single_line") -> matrix.Row:
+    """The A3 construction with the parameters under test."""
     base = matrix.BY_ID["da-a3-01"]
     return replace(
         base,
-        items=matrix.insert_lines(line_count),
+        items=_a3_items(line_count, form),
         layout=replace(base.layout, rows_per_page=rows_per_page),
     )
+
+
+#: Marker that every wrapped A3 description carries (see
+#: ``matrix._A3_DESCRIPTION``).  It lets ``a3_structure`` report which form a
+#: row uses without rebuilding the line set.
+A3_WRAPPED_MARKER = "double wall"
+
+
+def _description_form(row: matrix.Row) -> str:
+    if row.items and A3_WRAPPED_MARKER in row.items[0].description:
+        return "wrapped"
+    return "single_line"
 
 
 def a3_structure(row: matrix.Row) -> Dict[str, object]:
@@ -311,16 +344,20 @@ def a3_structure(row: matrix.Row) -> Dict[str, object]:
         if "Subtotal" in text and "TOTAL" in text:
             totals_page = index
             break
+    # A one-page candidate has no second page to measure.
+    lines_on_page_one = table_rows[0] if table_rows else 0
+    lines_on_page_two = table_rows[1] if len(table_rows) > 1 else None
     return {
         "rows_per_page": row.layout.rows_per_page,
         "line_count": row.line_count,
+        "description_form": _description_form(row),
         "pages": len(pages),
         "rows_per_page_measured": table_rows,
         "totals_page": totals_page,
         "passed": (
             len(pages) == 2
-            and table_rows[0] == row.line_count
-            and table_rows[1] == 0
+            and lines_on_page_one == row.line_count
+            and lines_on_page_two == 0
             and totals_page == 2
         ),
     }
@@ -329,13 +366,15 @@ def a3_structure(row: matrix.Row) -> Dict[str, object]:
 def a3_candidates() -> List[Dict[str, object]]:
     """Enumerate A3 parameters in a fixed order: at most 200 candidates.
 
-    Order: ``rows_per_page`` ascending, then ``line_count`` ascending.  The
-    list is the evidence for the frozen A3 parameters in ``matrix.py``.
+    Order: ``rows_per_page`` ascending, then ``line_count`` ascending, then
+    the description form (one line before wrapped).  The list is the evidence
+    for the frozen A3 parameters in ``matrix.py``.
     """
     out: List[Dict[str, object]] = []
     for rows_per_page in A3_ROWS_PER_PAGE_RANGE:
         for line_count in A3_LINE_COUNT_RANGE:
-            out.append(a3_structure(_a3_template(rows_per_page, line_count)))
+            for form in A3_DESCRIPTION_FORMS:
+                out.append(a3_structure(_a3_template(rows_per_page, line_count, form)))
     if len(out) > 200:
         raise BuildError(f"the A3 enumeration must stay within 200 candidates, got {len(out)}")
     return out
@@ -406,8 +445,10 @@ def fingerprints() -> Dict[str, str]:
 
 
 __all__ = [
+    "A3_DESCRIPTION_FORMS",
     "A3_LINE_COUNT_RANGE",
     "A3_ROWS_PER_PAGE_RANGE",
+    "A3_WRAPPED_MARKER",
     "BuildError",
     "a3_candidates",
     "a3_structure",

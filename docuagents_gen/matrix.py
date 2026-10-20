@@ -39,8 +39,9 @@ from . import codes
 SEED = 2026
 
 #: Scope limits that the matrix is built against.  A document above a limit
-#: is out of scope for that reason.  ``A3`` has two pages and 28 lines, so the
-#: limits must stay above those values.
+#: is out of scope for that reason.  ``A3`` has two pages and 16 lines, so the
+#: limits must stay at or above those values; ``max_lines`` stays above the
+#: 60-line page-limit construction of ``da-e-04``.
 LIMITS: Mapping[str, int] = {
     "max_pages": 2,
     "max_lines": 80,
@@ -157,6 +158,24 @@ CUSTOMERS: Tuple[Customer, ...] = (
     Customer("alder", "Alder Creek Mills", ("35 Depot Lane", "Savannah, GA 31405")),
     Customer("quarry", "Quarry Lane Systems", ("240 Elm Street", "Omaha, NE 68105")),
 )
+
+
+#: Sample plan §6.3: a supplier entity belongs to one split only.  The catalogue
+#: is split in two halves, and the two halves do not intersect:
+#:
+#: * ``dev``  -- ``VENDORS[0..2]`` (Northline, Harborline, Ridgeline);
+#: * ``test`` -- ``VENDORS[3..5]`` (Summit, Cedarworks, Bluewater).
+#:
+#: A row picks a slot inside its own half, so the same supplier can serve
+#: several documents of one split but never a document of the other split.
+DEV_VENDOR_SLOTS: Tuple[int, ...] = (0, 1, 2)
+TEST_VENDOR_SLOTS: Tuple[int, ...] = (3, 4, 5)
+
+
+def _vendor_slot(doc_id: str, slot: int) -> int:
+    """The vendor index of ``slot`` inside the split that holds ``doc_id``."""
+    slots = DEV_VENDOR_SLOTS if SPLIT[doc_id] == "dev" else TEST_VENDOR_SLOTS
+    return slots[slot % len(slots)]
 
 
 # ---------------------------------------------------------------------------
@@ -297,7 +316,7 @@ WALLET = Item("Document wallet, A4, pack of 25", Decimal("8"), Decimal("9.60"))
 def insert_lines(count: int) -> Tuple[Item, ...]:
     """A table of ``count`` short descriptions that never wrap.
 
-    Used by A3 (frozen at 28) and by E's page-limit construction (60).
+    Used by E's page-limit construction (60 lines, 24 rows per page).
     """
     if count < 1:
         raise MatrixError("insert_lines needs at least one line")
@@ -311,10 +330,39 @@ def insert_lines(count: int) -> Tuple[Item, ...]:
     )
 
 
+#: A3 line descriptions wrap to two printed lines inside the description
+#: column.  The extra row height is the controlled lever that pushes the
+#: totals block to page 2 while every line item stays on page 1 (sample plan
+#: §6.1 "n_lines <= 20", §7 P5).  The text is only longer; no upstream layout
+#: parameter is changed.
+_A3_DESCRIPTION = (
+    "Corrugated insert, size {n:02d}, double wall, stackable, "
+    "moisture resistant, recycled board"
+)
+
+
+def a3_items(count: int) -> Tuple[Item, ...]:
+    """The A3 table: ``count`` lines, every description wrapping to two lines."""
+    if count < 1:
+        raise MatrixError("a3_items needs at least one line")
+    return tuple(
+        Item(
+            _A3_DESCRIPTION.format(n=i + 1),
+            Decimal("2"),
+            Decimal("3.10") + Decimal(i) * Decimal("0.10"),
+        )
+        for i in range(count)
+    )
+
+
 #: The A3 construction, frozen after the bounded candidate enumeration in
-#: ``build.a3_candidates`` (see the T07 completion report for the run).
-A3_ROWS_PER_PAGE = 28
-A3_LINE_COUNT = 28
+#: ``build.a3_candidates`` (see the T07a completion report for the run).
+#: The pair is the first passing candidate in the fixed enumeration order
+#: (``rows_per_page`` ascending, ``line_count`` ascending, one-line before
+#: wrapped): 182 candidates, 26 pass, and candidate 6
+#: (``rows_per_page=18``, ``line_count=16``, wrapped descriptions) is first.
+A3_ROWS_PER_PAGE = 18
+A3_LINE_COUNT = 16
 
 
 # ---------------------------------------------------------------------------
@@ -347,26 +395,38 @@ def _a1(index: int) -> Row:
         LayoutSpec(header="left", table="zebra", family="mono"),
         LayoutSpec(header="right", table="band", logo=True),
     )
+    doc_id = f"da-a1-{index + 1:02d}"
+    # da-a1-04 is the normal purchase-order reference of the plan (§6.1); the
+    # near-due-date interference stays on da-a1-05 and da-a1-06.
+    po_number = "PO-2026-1177" if index == 3 else None
     return Row(
-        doc_id=f"da-a1-{index + 1:02d}",
+        doc_id=doc_id,
         klass="A",
         subclass="A1",
         target_question="正常单页发票的字段与金额是否被完整、准确抽取？",
         source_family="clean_pdf",
-        vendor=index,
+        vendor=_vendor_slot(doc_id, index),
         customer=(index + 1) % len(CUSTOMERS),
         issue_date=dates[index],
         items=items,
         number=f"INV-2026-{1101 + index}",
+        po_number=po_number,
         layout=layouts[index],
-        notes="单页、明细完整、税额印出、算术一致。",
+        notes=(
+            "单页、明细完整、税额印出、算术一致；票面印正常 PO 引用 \"PO-2026-1177\"。"
+            if po_number
+            else "单页、明细完整、税额印出、算术一致。"
+        ),
     )
 
 
 def _a2() -> Row:
+    # Sample plan §6.1: n_lines = 20, one page, every line readable.
     items = (
         PACKING_TAPE, LABELS, CARTONS, STRETCH_FILM, BUBBLE_WRAP, GLOVES,
         STRAPPING, TONER, KNIFE, WALLET, LABELS, PACKING_TAPE,
+        CARTONS, STRETCH_FILM, BUBBLE_WRAP, GLOVES, STRAPPING, TONER,
+        KNIFE, WALLET,
     )
     return Row(
         doc_id="da-a2-01",
@@ -374,27 +434,28 @@ def _a2() -> Row:
         subclass="A2",
         target_question="高行数单页发票的行项目是否完整且金额正确？",
         source_family="clean_pdf",
-        vendor=1,
+        vendor=_vendor_slot("da-a2-01", 1),
         customer=2,
         issue_date=date(2026, 5, 6),
         items=items,
         number="INV-2026-1201",
         layout=LayoutSpec(header="left", table="band"),
-        notes="单页 12 行；仍在一页内，不与 A3 的分页构造重叠。",
+        notes="单页 20 行；全部明细在一页内且可读，不与 A3 的分页构造重叠。",
     )
 
 
 def _a3(index: int) -> Row:
+    doc_id = f"da-a3-{index + 1:02d}"
     return Row(
-        doc_id=f"da-a3-{index + 1:02d}",
+        doc_id=doc_id,
         klass="A",
         subclass="A3",
         target_question="明细与合计分页时，合计区是否仍被正确绑定？",
         source_family="clean_pdf_multipage",
-        vendor=2 + index,
+        vendor=_vendor_slot(doc_id, index),
         customer=index,
         issue_date=date(2026, 5, 20 + 7 * index),
-        items=insert_lines(A3_LINE_COUNT),
+        items=a3_items(A3_LINE_COUNT),
         number=f"INV-2026-{1301 + index}",
         layout=LayoutSpec(header="left", table="band", rows_per_page=A3_ROWS_PER_PAGE),
         notes="两页；全部明细在第 1 页；第 2 页只有完整小计/税额/总额区。",
@@ -408,46 +469,52 @@ def _a4() -> Row:
         subclass="A4",
         target_question="印出的 0.00 税额是否被当作已知值而不是缺失？",
         source_family="clean_pdf",
-        vendor=5,
+        vendor=_vendor_slot("da-a4-01", 2),
         customer=4,
         issue_date=date(2026, 6, 2),
         items=(WALLET, KNIFE),
         number="INV-2026-1401",
         tax_rate=Decimal("0.00"),
-        tax_label="Sales Tax (0%)",
+        tax_label="Sales Tax (Exempt)",
         layout=LayoutSpec(header="right", table="band"),
-        notes="税额印出 0.00；gold 为 \"0.00\"，不是 null。",
+        notes="免税标签印出明确的税额行 0.00；gold 为 \"0.00\"，不是 null。",
     )
 
 
 def _b_rows() -> Tuple[Row, ...]:
-    """B1 photo (perspective), B2 scan (grayscale), B3 heavy (one photo, one scan)."""
+    """B1 scan, B2 photo, B3 heavy (one photo, one scan).
+
+    Sample plan §6.1: B1 "扫描图像（mild/moderate）", B2 "照片图像
+    （mild/moderate）", severe belongs to B3.
+    """
     plan = (
-        ("da-b1-01", "B1", "photo", "perspective", "mild", "jpg"),
-        ("da-b1-02", "B1", "photo", "perspective", "moderate", "jpg"),
-        ("da-b1-03", "B1", "photo", "perspective", "severe", "jpg"),
-        ("da-b2-01", "B2", "scan", "grayscale_scan", "mild", "png"),
-        ("da-b2-02", "B2", "scan", "grayscale_scan", "moderate", "png"),
-        ("da-b2-03", "B2", "scan", "grayscale_scan", "severe", "png"),
+        ("da-b1-01", "B1", "scan", "grayscale_scan", "mild", "png"),
+        ("da-b1-02", "B1", "scan", "noise", "moderate", "png"),
+        ("da-b1-03", "B1", "scan", "grayscale_scan", "moderate", "png"),
+        ("da-b2-01", "B2", "photo", "perspective", "mild", "jpg"),
+        ("da-b2-02", "B2", "photo", "rotate_small", "moderate", "jpg"),
+        ("da-b2-03", "B2", "photo", "perspective", "moderate", "jpg"),
         ("da-b3-01", "B3", "photo", "low_res", "severe", "jpg"),
         ("da-b3-02", "B3", "scan", "fax", "severe", "png"),
     )
     rows = []
     for i, (doc_id, subclass, category, kind, severity, fmt) in enumerate(plan):
+        question = {
+            "B1": "扫描降质下核心字段是否仍可读？",
+            "B2": "照片降质下核心字段是否仍可读？",
+        }.get(subclass, "重降质下不可读字段是否被如实标记而不是猜测？")
+        note = {
+            "B1": "扫描降质（mild/moderate）；核心字段按构造保持可读。",
+            "B2": "照片降质（mild/moderate）；核心字段按构造保持可读。",
+        }.get(subclass, "按构造参数预填可读性；最终冻结核对属 T17 全量标注核对。")
         rows.append(
             Row(
                 doc_id=doc_id,
                 klass="B",
                 subclass=subclass,
-                target_question=(
-                    "照片降质下核心字段是否仍可读？"
-                    if subclass == "B1"
-                    else "扫描降质下核心字段是否仍可读？"
-                    if subclass == "B2"
-                    else "重降质下不可读字段是否被如实标记而不是猜测？"
-                ),
+                target_question=question,
                 source_family="degraded_photo" if category == "photo" else "degraded_scan",
-                vendor=(i + 1) % len(VENDORS),
+                vendor=_vendor_slot(doc_id, i),
                 customer=(i + 3) % len(CUSTOMERS),
                 issue_date=date(2026, 6, 10 + i),
                 items=(PACKING_TAPE, CARTONS, TONER)[: 3 if i % 2 == 0 else 2],
@@ -457,17 +524,14 @@ def _b_rows() -> Tuple[Row, ...]:
                 render_fmt=fmt,
                 degradations=((kind, severity),),
                 legibility="image_readable" if subclass != "B3" else "image_degraded_unverified",
-                notes=(
-                    "固定降质类型与严重度；核心字段按构造保持可读。"
-                    if subclass != "B3"
-                    else "按构造参数预填可读性；最终冻结核对属 T17 全量标注核对。"
-                ),
+                notes=note,
             )
         )
     return tuple(rows)
 
 
 def _c1(index: int) -> Row:
+    """Two deliberate line-amount conflicts: one PDF, one mild scan (§6.1)."""
     if index == 0:
         items = (
             Item("Pallet strapping kit", Decimal("3"), Decimal("5.00"), amount_override=Decimal("51.00")),
@@ -482,20 +546,29 @@ def _c1(index: int) -> Row:
         )
         number = "INV-2026-1602"
         date_ = date(2026, 7, 14)
+    doc_id = f"da-c1-{index + 1:02d}"
+    scanned = index == 1
     return Row(
-        doc_id=f"da-c1-{index + 1:02d}",
+        doc_id=doc_id,
         klass="C",
         subclass="C1",
         target_question="行金额与数量×单价不一致时是否只报 LINE_AMOUNT_MISMATCH？",
         source_family="clean_pdf_inconsistent",
-        vendor=3 + index,
+        vendor=_vendor_slot(doc_id, index),
         customer=5 - index,
         issue_date=date_,
         items=items,
         number=number,
         layout=LayoutSpec(header="left", table="band"),
+        render_mode="pdf" if not scanned else "image",
+        render_fmt="pdf" if not scanned else "png",
+        degradations=() if not scanned else (("grayscale_scan", "mild"),),
+        legibility="clean_text" if not scanned else "image_readable",
         expected_issues=("LINE_AMOUNT_MISMATCH",),
-        notes="数字换位：3 × 5.00 = 15.00 印成 51.00；2 × 9.00 = 18.00 印成 81.00。",
+        notes=(
+            "数字换位：3 × 5.00 = 15.00 印成 51.00；2 × 9.00 = 18.00 印成 81.00。"
+            + ("第二份为 mild 灰度扫描。" if scanned else "")
+        ),
     )
 
 
@@ -506,7 +579,7 @@ def _c2() -> Row:
         subclass="C2",
         target_question="小计与行金额之和不一致时是否只报 SUBTOTAL_MISMATCH？",
         source_family="clean_pdf_inconsistent",
-        vendor=0,
+        vendor=_vendor_slot("da-c2-01", 0),
         customer=5,
         issue_date=date(2026, 7, 21),
         items=(
@@ -529,7 +602,7 @@ def _c3() -> Row:
         subclass="C3",
         target_question="总计关系不一致时是否只报 TOTAL_MISMATCH？",
         source_family="clean_pdf_inconsistent",
-        vendor=4,
+        vendor=_vendor_slot("da-c3-01", 2),
         customer=2,
         issue_date=date(2026, 7, 28),
         items=(
@@ -551,7 +624,7 @@ def _d1() -> Row:
         subclass="D1",
         target_question="税额未印时是否记录为未知（null）而不是 0？",
         source_family="clean_pdf_missing_tax",
-        vendor=1,
+        vendor=_vendor_slot("da-d1-01", 1),
         customer=0,
         issue_date=date(2026, 8, 4),
         items=(PACKING_TAPE, LABELS, CARTONS),
@@ -569,7 +642,7 @@ def _d2() -> Row:
         subclass="D2",
         target_question="只印 PO 号时是否避免把 PO 号当作发票号？",
         source_family="clean_pdf_po_only",
-        vendor=2,
+        vendor=_vendor_slot("da-d2-01", 2),
         customer=3,
         issue_date=date(2026, 8, 11),
         items=(GLOVES, TONER, WALLET),
@@ -589,7 +662,7 @@ def _e_discount() -> Row:
         subclass="E",
         target_question="含折扣的发票是否被判定为超范围并给出 HAS_DISCOUNT？",
         source_family="clean_pdf_out_of_scope",
-        vendor=0,
+        vendor=_vendor_slot("da-e-01", 0),
         customer=1,
         issue_date=date(2026, 8, 18),
         items=(CARTONS, STRETCH_FILM, GLOVES),
@@ -609,7 +682,7 @@ def _e_surcharge() -> Row:
         subclass="E",
         target_question="含额外费用的发票是否被判定为超范围并给出 HAS_EXTRA_CHARGES？",
         source_family="clean_pdf_out_of_scope",
-        vendor=3,
+        vendor=_vendor_slot("da-e-02", 0),
         customer=4,
         issue_date=date(2026, 8, 25),
         items=(LABELS, TONER),
@@ -629,7 +702,7 @@ def _e_non_usd() -> Row:
         subclass="E",
         target_question="非美元发票是否被判定为超范围并给出 NON_USD_CURRENCY？",
         source_family="clean_pdf_out_of_scope",
-        vendor=4,
+        vendor=_vendor_slot("da-e-03", 1),
         customer=5,
         issue_date=date(2026, 9, 1),
         items=(PACKING_TAPE, BUBBLE_WRAP),
@@ -651,7 +724,7 @@ def _e_pages() -> Row:
         subclass="E",
         target_question="明细跨页且超过页数上限时是否给出 TABLE_SPANS_PAGES 与 TOO_MANY_PAGES？",
         source_family="clean_pdf_out_of_scope",
-        vendor=5,
+        vendor=_vendor_slot("da-e-04", 2),
         customer=0,
         issue_date=date(2026, 9, 8),
         items=insert_lines(60),
@@ -670,7 +743,7 @@ def _e_credit() -> Row:
         subclass="E",
         target_question="贷项通知单是否被判定为超范围并给出 CREDIT_NOTE？",
         source_family="clean_pdf_out_of_scope",
-        vendor=2,
+        vendor=_vendor_slot("da-e-05", 1),
         customer=1,
         issue_date=date(2026, 9, 15),
         items=(CARTONS, LABELS),
@@ -693,7 +766,7 @@ def _e_multiple() -> Row:
         subclass="E",
         target_question="一个文件含多张发票时是否被判定为超范围并给出 MULTIPLE_INVOICES？",
         source_family="clean_pdf_out_of_scope",
-        vendor=1,
+        vendor=_vendor_slot("da-e-06", 2),
         customer=2,
         issue_date=date(2026, 9, 22),
         items=(),
@@ -701,8 +774,9 @@ def _e_multiple() -> Row:
         doc_kind="multi_invoice",
         layout=LayoutSpec(header="left", table="band"),
         children=(
-            ChildSpec("INV-2026-1901", 1, (PACKING_TAPE, LABELS)),
-            ChildSpec("INV-2026-1902", 3, (TONER, WALLET)),
+            # Test-split suppliers only: the vendor catalogue is split-isolated.
+            ChildSpec("INV-2026-1901", 3, (PACKING_TAPE, LABELS)),
+            ChildSpec("INV-2026-1902", 5, (TONER, WALLET)),
         ),
         scope_status="UNSUPPORTED",
         scope_reasons=("MULTIPLE_INVOICES",),
@@ -793,6 +867,23 @@ def _check_configuration() -> None:
     for row in ROWS:
         if row.vendor >= len(VENDORS) or row.customer >= len(CUSTOMERS):
             raise MatrixError(f"{row.doc_id}: vendor/customer index out of range")
+        for child in row.children:
+            if child.vendor >= len(VENDORS):
+                raise MatrixError(f"{row.doc_id}: child vendor index out of range")
+
+    # Sample plan §6.3: a supplier entity belongs to one split only.
+    vendor_splits: Dict[str, set] = {}
+    for row in ROWS:
+        names = [VENDORS[row.vendor].name] + [VENDORS[child.vendor].name for child in row.children]
+        for name in names:
+            vendor_splits.setdefault(name, set()).add(row.split)
+    crossing = sorted(name for name, splits in vendor_splits.items() if len(splits) > 1)
+    if crossing:
+        raise MatrixError(f"vendors cross the dev/test boundary: {crossing}")
+    for split, slots in (("dev", DEV_VENDOR_SLOTS), ("test", TEST_VENDOR_SLOTS)):
+        used = {row.vendor for row in ROWS if row.split == split}
+        if used - set(slots):
+            raise MatrixError(f"{split}: a row uses a vendor outside its split half")
 
 
 _check_configuration()
@@ -800,12 +891,14 @@ _check_configuration()
 __all__ = [
     "A3_LINE_COUNT",
     "A3_ROWS_PER_PAGE",
+    "a3_items",
     "BY_ID",
     "CLASS_COUNTS",
     "CUSTOMERS",
     "ChargeSpec",
     "ChildSpec",
     "Customer",
+    "DEV_VENDOR_SLOTS",
     "Item",
     "insert_lines",
     "LIMITS",
@@ -816,6 +909,7 @@ __all__ = [
     "SEED",
     "SPLIT",
     "SUBCLASS_COUNTS",
+    "TEST_VENDOR_SLOTS",
     "VENDORS",
     "Vendor",
     "round_money",
