@@ -192,12 +192,17 @@ def test_manifest_covers_every_artifact_and_keeps_its_own_hash_out(
     reference_dir: Path, reference_manifest: Dict[str, Any]
 ) -> None:
     declared = {entry["path"] for entry in reference_manifest["files"]}
+    # The boundary and technical fixtures publish beside the main set with
+    # their own manifest (T15); the main manifest never declares them.
     on_disk = {
         path.relative_to(reference_dir).as_posix()
         for path in reference_dir.rglob("*")
         if path.is_file()
+        and not path.relative_to(reference_dir).as_posix().startswith("boundary_fixtures/")
     }
     assert declared | {"manifest.json"} == on_disk
+    assert (reference_dir / "boundary_fixtures" / "manifest.json").is_file()
+    assert not any(path.startswith("boundary_fixtures/") for path in declared)
     assert "manifest.json" not in declared
     roles = {entry["artifact_role"] for entry in reference_manifest["files"]}
     assert roles == {"generated", "runtime_report"}

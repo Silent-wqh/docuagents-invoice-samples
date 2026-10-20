@@ -70,7 +70,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 from generator.generate import render_document
 from generator.layout import build_pages, page_text
 
-from . import build, codes, gold, matrix, offline, split
+from . import build, codes, fixtures, gold, matrix, offline, split
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -83,6 +83,10 @@ DIGEST_METHOD_VERSION = "1"
 
 #: The default output directory, relative to the repository root.
 DEFAULT_OUT = ROOT / "datasets" / "docuagents_v1"
+
+#: The fixture subtree inside the output directory.  The fixtures publish with
+#: the main set but stay out of the main manifest and the main counts.
+FIXTURE_DIR_NAME = "boundary_fixtures"
 
 #: Preview resolution: 144 DPI from the 72-point PDF page.
 PREVIEW_SCALE = 2
@@ -825,6 +829,7 @@ def generate_dataset(
     out.parent.mkdir(parents=True, exist_ok=True)
     started = time.time()
     tmp = Path(tempfile.mkdtemp(prefix=".tmp-docuagents-v1-", dir=str(out.parent)))
+    fixture_summary: Dict[str, Any] = {}
     try:
         entries: List[Dict[str, Any]] = []
         total_pages = 0
@@ -914,6 +919,14 @@ def generate_dataset(
         manifest_doc["files"] = files
         _write_json(tmp / "manifest.json", manifest_doc)
 
+        # The boundary and technical fixtures live beside the main set, with
+        # their own manifest and their own counts.  They share this temporary
+        # directory, so one atomic publish writes both trees.  No fixture path
+        # enters the main manifest.
+        fixture_summary = fixtures.generate_boundary_fixtures(
+            tmp / FIXTURE_DIR_NAME, seed=fixtures.FIXTURE_SEED
+        )
+
         _publish(tmp, out)
     except BaseException as exc:
         _mark_incomplete(tmp, f"{type(exc).__name__}: {exc}")
@@ -936,6 +949,7 @@ def generate_dataset(
         "generator_commit": manifest_doc["generator_commit"],
         "duration_seconds": round(time.time() - started, 3),
         "tmp_dir": str(tmp),
+        "fixtures": fixture_summary,
     }
 
 
@@ -945,10 +959,16 @@ def generate_dataset(
 
 
 def _directory_paths(root: Path) -> set:
+    """Every file in ``root``, minus the fixture subtree.
+
+    The fixtures publish beside the main set and have their own manifest, so
+    the main file-set check must not see them as undeclared files.
+    """
     return {
         path.relative_to(root).as_posix()
         for path in root.rglob("*")
         if path.is_file()
+        and not path.relative_to(root).as_posix().startswith(FIXTURE_DIR_NAME + "/")
     }
 
 
@@ -1146,6 +1166,19 @@ def compare_datasets(candidate_dir: Path, reference_dir: Path) -> Dict[str, Any]
     failures.extend(version_failures)
     checks["versions"] = {"failures": version_failures}
 
+    # 7. The boundary and technical fixtures.  They have their own manifest and
+    #    their own counts; the reference fixture manifest is the only baseline.
+    fixture_result = fixtures.check_fixtures(candidate / FIXTURE_DIR_NAME,
+                                             reference / FIXTURE_DIR_NAME / "manifest.json")
+    counts["fixture_compared"] = fixture_result["counts"]["generated_compared"]
+    counts["fixture_total"] = fixture_result["counts"]["generated_total"]
+    counts["fixture_missing"] = fixture_result["counts"]["missing"]
+    counts["fixture_extra"] = fixture_result["counts"]["extra"]
+    fixture_failures = [f"fixtures: {failure}" for failure in fixture_result["failures"]]
+    failures.extend(fixture_failures)
+    checks["fixtures"] = {"ok": fixture_result["ok"], "failures": fixture_failures,
+                          "counts": fixture_result["counts"]}
+
     return {"ok": not failures, "failures": failures, "checks": checks, "counts": counts}
 
 
@@ -1194,6 +1227,8 @@ def _print_check(result: Mapping[str, Any]) -> None:
     counts = result["counts"]
     print(f"reference: {result['reference']}")
     print(f"files compared: {counts['generated_compared']}/{counts['generated_total']}")
+    print(f"fixture files compared: {counts['fixture_compared']}/{counts['fixture_total']}"
+          f" (missing {counts['fixture_missing']}, undeclared {counts['fixture_extra']})")
     print(f"missing files: {counts['missing']}, undeclared files: {counts['extra']}")
     print(f"semantic summaries compared: {counts['semantic_compared']}")
     print(f"pixel summaries compared: PDF {counts['pdf_pixel_compared']}, "

@@ -98,6 +98,14 @@
     },
     "annotation": {
       "$ref": "#/$defs/annotation"
+    },
+    "expected_status": {
+      "description": "T15 fixture routing expectation. Optional: a main-set gold record does not need it, and the 30 frozen main records stay byte-identical. A fixture gold must carry it.",
+      "enum": ["auto_accepted", "needs_review", "failed"]
+    },
+    "must_not_auto_accept": {
+      "description": "T15 fixture routing expectation. Optional, for the same reason as expected_status. A fixture gold must carry it.",
+      "type": "boolean"
     }
   },
   "$defs": {
@@ -190,7 +198,7 @@
             {"type": "null"}
           ]
         },
-        "date_form": {"enum": ["USLONG"]},
+        "date_form": {"enum": ["USLONG", "US", "ISO"]},
         "tax_note": {
           "oneOf": [
             {"type": "string", "minLength": 1},
@@ -320,9 +328,9 @@
             "table_pages"
           ],
           "properties": {
-            "document_type": {"enum": ["invoice", "credit_note"]},
+            "document_type": {"enum": ["invoice", "credit_note", "purchase_order"]},
             "invoice_count": {"type": "integer", "minimum": 1},
-            "language": {"enum": ["en"]},
+            "language": {"enum": ["en", "other"]},
             "currency_evidence": {"enum": ["explicit", "missing"]},
             "unit_price_basis": {"enum": ["pre_tax", "tax_inclusive", "unknown"]},
             "discount": {"enum": ["present", "absent"]},

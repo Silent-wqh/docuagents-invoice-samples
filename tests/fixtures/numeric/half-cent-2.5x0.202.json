@@ -1,0 +1,9 @@
+{
+  "case_id": "half-cent-2.5x0.202",
+  "coverage": "object_level",
+  "quantity": "2.5",
+  "unit_price": "0.202",
+  "expected_line_amount": "0.51",
+  "rounding": "ROUND_HALF_UP",
+  "note": "2.5 x 0.202 = 0.505 exactly. Quantize to the cent, half up, gives 0.51. By hand: the digit after the cent is 5, so the cent rounds up rather than to even. Object-level case."
+}
