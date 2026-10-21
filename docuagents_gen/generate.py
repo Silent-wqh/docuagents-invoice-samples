@@ -70,7 +70,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 from generator.generate import render_document
 from generator.layout import build_pages, page_text
 
-from . import build, codes, fixtures, gold, matrix, offline, split
+from . import build, codes, fixtures, gold, inject, matrix, offline, split
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -739,6 +739,9 @@ def counts_of(files: Sequence[Mapping[str, Any]] | None = None) -> Dict[str, Any
         "documents_with_base": sum(1 for row in matrix.ROWS if row.render_mode == "image"),
         "class": class_counts,
         "subclass": subclass_counts,
+        # The fault cases are data about ten existing documents, not new
+        # invoices: they stay out of the 30-document denominator above.
+        "fault_injection": inject.plan_counts(),
     }
 
 
@@ -863,6 +866,17 @@ def generate_dataset(
                 "the generated set has missing references: " + "; ".join(references["details"][:5])
             )
 
+        # The fault suite reads the gold records just written and publishes in
+        # the same temporary directory.  Its files join the main manifest, so
+        # --check compares them byte for byte like every other generated file.
+        injection_summary = inject.inject_faults(tmp / "gold", tmp / inject.DIR_NAME)
+        for relative in injection_summary["files"]:
+            entries.append({
+                "path": f"{inject.DIR_NAME}/{relative}",
+                "media_type": "application/json",
+                "artifact_role": "generated",
+            })
+
         files = sorted((_entry_with_size(tmp, entry) for entry in entries), key=lambda e: e["path"])
 
         environment = environment_digest()
@@ -909,6 +923,8 @@ def generate_dataset(
             "documents": len(matrix.ROWS),
             "pages": total_pages,
             "document_bytes": document_bytes,
+            "fault_injection": {key: value for key, value in injection_summary.items()
+                                if key != "files"},
         }
         _write_json(tmp / "reports" / "check_summary.json", report)
         report_entry = _entry_with_size(
@@ -950,6 +966,8 @@ def generate_dataset(
         "duration_seconds": round(time.time() - started, 3),
         "tmp_dir": str(tmp),
         "fixtures": fixture_summary,
+        "fault_injection": {key: value for key, value in injection_summary.items()
+                            if key != "files"},
     }
 
 
@@ -1054,6 +1072,11 @@ def compare_datasets(candidate_dir: Path, reference_dir: Path) -> Dict[str, Any]
     runtime_reports = 0
     for entry in sorted(reference_manifest["files"], key=lambda e: e["path"]):
         rel = entry["path"]
+        if rel.startswith(inject.DIR_NAME + "/"):
+            # The injection suite has its own count line and its own check
+            # (step 8); keeping it out of this loop reports the main set as
+            # 142/142.
+            continue
         reference_file = reference / rel
         candidate_file = candidate / rel
         role = entry["artifact_role"]
@@ -1179,6 +1202,19 @@ def compare_datasets(candidate_dir: Path, reference_dir: Path) -> Dict[str, Any]
     checks["fixtures"] = {"ok": fixture_result["ok"], "failures": fixture_failures,
                           "counts": fixture_result["counts"]}
 
+    # 8. The fault injection suite.  Its files are in the main manifest, so the
+    #    byte loop above already compared them; this step also proves that the
+    #    envelope-to-candidate mapping still holds and names the counts.
+    injection_result = inject.check_injections(candidate, reference, reference_manifest)
+    counts["injection_compared"] = injection_result["compared"]
+    counts["injection_total"] = injection_result["total"]
+    injection_failures = [f"injections: {failure}" for failure in injection_result["failures"]]
+    failures.extend(injection_failures)
+    checks["injections"] = {"ok": injection_result["ok"],
+                            "failures": injection_failures,
+                            "envelopes": injection_result["envelopes"],
+                            "candidates": injection_result["candidates"]}
+
     return {"ok": not failures, "failures": failures, "checks": checks, "counts": counts}
 
 
@@ -1229,6 +1265,9 @@ def _print_check(result: Mapping[str, Any]) -> None:
     print(f"files compared: {counts['generated_compared']}/{counts['generated_total']}")
     print(f"fixture files compared: {counts['fixture_compared']}/{counts['fixture_total']}"
           f" (missing {counts['fixture_missing']}, undeclared {counts['fixture_extra']})")
+    print(f"injection files compared: {counts['injection_compared']}/{counts['injection_total']}"
+          f" (envelopes {result['checks']['injections']['envelopes']}, "
+          f"candidates {result['checks']['injections']['candidates']})")
     print(f"missing files: {counts['missing']}, undeclared files: {counts['extra']}")
     print(f"semantic summaries compared: {counts['semantic_compared']}")
     print(f"pixel summaries compared: PDF {counts['pdf_pixel_compared']}, "

@@ -698,7 +698,11 @@ def test_the_main_manifest_still_covers_only_the_main_set(tmp_path: Path) -> Non
     generate.generate_dataset(out, quiet=True)
     manifest_doc = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     assert manifest_doc["counts"]["total"] == 30
-    assert len(manifest_doc["files"]) == 143
+    # 142 generated main artifacts + 1 runtime report + 100 fault injection
+    # files (50 envelopes + 50 candidates, T16).
+    assert len(manifest_doc["files"]) == 243
+    assert sum(1 for entry in manifest_doc["files"]
+               if entry["path"].startswith("fault_injection/")) == 100
     assert not any(entry["path"].startswith("boundary_fixtures/")
                    for entry in manifest_doc["files"])
     assert (out / "boundary_fixtures" / "manifest.json").is_file()
