@@ -1055,9 +1055,15 @@ def compare_datasets(candidate_dir: Path, reference_dir: Path) -> Dict[str, Any]
     reference_manifest = _read_json(reference_manifest_path)
     candidate_manifest = _read_json(candidate_manifest_path)
 
+    # The frozen annotation files are verified by meaning in step 9.  They are
+    # not generated, so they stay out of the byte comparison and the file set.
+    frozen_paths = {entry["path"] for entry in reference_manifest["files"]
+                    if entry["artifact_role"] == "frozen_review"}
+
     # 1. The file set.
-    expected = {entry["path"] for entry in reference_manifest["files"]} | {"manifest.json"}
-    actual = _directory_paths(candidate)
+    expected = ({entry["path"] for entry in reference_manifest["files"]}
+                | {"manifest.json"}) - frozen_paths
+    actual = _directory_paths(candidate) - frozen_paths
     missing = sorted(expected - actual)
     extra = sorted(actual - expected)
     counts["missing"], counts["extra"] = len(missing), len(extra)
@@ -1076,6 +1082,10 @@ def compare_datasets(candidate_dir: Path, reference_dir: Path) -> Dict[str, Any]
             # The injection suite has its own count line and its own check
             # (step 8); keeping it out of this loop reports the main set as
             # 142/142.
+            continue
+        if entry["artifact_role"] == "frozen_review":
+            # A frozen artifact is verified by its meaning in step 9; it is
+            # never regenerated and never byte-compared here.
             continue
         reference_file = reference / rel
         candidate_file = candidate / rel
@@ -1215,6 +1225,21 @@ def compare_datasets(candidate_dir: Path, reference_dir: Path) -> Dict[str, Any]
                             "envelopes": injection_result["envelopes"],
                             "candidates": injection_result["candidates"]}
 
+    # 9. The frozen annotation files.  They are read, never regenerated: the
+    #    reference manifest and the reference files are the only baseline.
+    from . import review
+
+    frozen_result = review.check_frozen_artifacts(candidate, reference, reference_manifest)
+    for key in ("frozen_total", "frozen_verified", "frozen_compared",
+                "lock_total", "lock_verified", "review_total", "review_verified",
+                "readme_total", "readme_verified"):
+        counts[key] = frozen_result["counts"][key]
+    frozen_failures = [f"frozen: {failure}" for failure in frozen_result["failures"]]
+    failures.extend(frozen_failures)
+    checks["frozen"] = {"ok": frozen_result["ok"],
+                        "failures": frozen_failures,
+                        "counts": frozen_result["counts"]}
+
     return {"ok": not failures, "failures": failures, "checks": checks, "counts": counts}
 
 
@@ -1268,6 +1293,11 @@ def _print_check(result: Mapping[str, Any]) -> None:
     print(f"injection files compared: {counts['injection_compared']}/{counts['injection_total']}"
           f" (envelopes {result['checks']['injections']['envelopes']}, "
           f"candidates {result['checks']['injections']['candidates']})")
+    print(f"frozen files verified: {counts.get('frozen_verified', 0)}/{counts.get('frozen_total', 0)}"
+          f" (compared {counts.get('frozen_compared', 0)})")
+    print(f"lock files verified: {counts.get('lock_verified', 0)}/{counts.get('lock_total', 0)}")
+    print(f"review files verified: {counts.get('review_verified', 0)}/{counts.get('review_total', 0)}")
+    print(f"readme files verified: {counts.get('readme_verified', 0)}/{counts.get('readme_total', 0)}")
     print(f"missing files: {counts['missing']}, undeclared files: {counts['extra']}")
     print(f"semantic summaries compared: {counts['semantic_compared']}")
     print(f"pixel summaries compared: PDF {counts['pdf_pixel_compared']}, "
