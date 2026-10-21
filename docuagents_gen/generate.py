@@ -1205,6 +1205,8 @@ def compare_datasets(candidate_dir: Path, reference_dir: Path) -> Dict[str, Any]
                                              reference / FIXTURE_DIR_NAME / "manifest.json")
     counts["fixture_compared"] = fixture_result["counts"]["generated_compared"]
     counts["fixture_total"] = fixture_result["counts"]["generated_total"]
+    counts["fixture_frozen_compared"] = fixture_result["counts"]["frozen_verified"]
+    counts["fixture_frozen_total"] = fixture_result["counts"]["frozen_total"]
     counts["fixture_missing"] = fixture_result["counts"]["missing"]
     counts["fixture_extra"] = fixture_result["counts"]["extra"]
     fixture_failures = [f"fixtures: {failure}" for failure in fixture_result["failures"]]
@@ -1288,8 +1290,12 @@ def _print_check(result: Mapping[str, Any]) -> None:
     counts = result["counts"]
     print(f"reference: {result['reference']}")
     print(f"files compared: {counts['generated_compared']}/{counts['generated_total']}")
-    print(f"fixture files compared: {counts['fixture_compared']}/{counts['fixture_total']}"
-          f" (missing {counts['fixture_missing']}, undeclared {counts['fixture_extra']})")
+    fixture_compared = counts["fixture_compared"] + counts["fixture_frozen_compared"]
+    fixture_total = counts["fixture_total"] + counts["fixture_frozen_total"]
+    print(f"fixture files compared: {fixture_compared}/{fixture_total}"
+          f" (generated {counts['fixture_compared']}/{counts['fixture_total']},"
+          f" frozen {counts['fixture_frozen_compared']}/{counts['fixture_frozen_total']};"
+          f" missing {counts['fixture_missing']}, undeclared {counts['fixture_extra']})")
     print(f"injection files compared: {counts['injection_compared']}/{counts['injection_total']}"
           f" (envelopes {result['checks']['injections']['envelopes']}, "
           f"candidates {result['checks']['injections']['candidates']})")
