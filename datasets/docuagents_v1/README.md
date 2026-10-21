@@ -173,8 +173,7 @@ B3 uses `image_degraded_unverified`. B1, B2 and the scanned C1 document use
 
 Every main gold record has `readability.verified: false`. The final reading is
 a human decision, not a generator decision. The boundary fixture legibility
-review (`boundary_fixtures/reports/legibility_review.json`) also stays
-`pending_human_confirmation`.
+review (`boundary_fixtures/reports/legibility_review.json`) is `confirmed`.
 
 `da-fx-unread` is the unreadable fixture. A white rectangle covers its totals
 block. Its `subtotal_amount`, `tax_amount` and `total_amount` are `null`, the
@@ -215,7 +214,7 @@ main, fixture and injection counts, then the frozen count lines:
 
 ```text
 files compared: 142/142
-fixture files compared: 64/64
+fixture files compared: 64/64 (generated 63/63, frozen 1/1; missing 0, undeclared 0)
 injection files compared: 100/100
 frozen files verified: 3/3
 lock files verified: 1/1
@@ -337,15 +336,14 @@ blind score needs a private holdout, and this set is not one.
 
 ## Human confirmation status
 
-The annotation lock and the frozen review are `pending_human_confirmation`.
-`reviewed_by` and `reviewed_at` are empty. No agent signed them.
+The annotation lock and the frozen review are `confirmed`. `reviewed_by` is
+`王庆昊 (Project Owner)` and `reviewed_at` is `2026-10-21T06:14:20Z`.
 
-The Project Owner must review every page preview and the manual checklist in
-`reports/annotation_review.json`, then sign both files. The machine pre-check
-does not replace that review.
+The Project Owner reviewed every page preview and the manual checklist in
+`reports/annotation_review.json`, then signed both files. The machine
+pre-check does not replace that review.
 
 ## Release status
 
-The planned tag is `docuagents-v1.0`. The tag is not created by the data gate.
-The release record is a draft until the Project Owner signs the review. The
-draft is in `reports/release_record_draft.json` at the repository root.
+The release tag is `docuagents-v1.0`. The formal release record is
+`reports/release_record.json` at the repository root.

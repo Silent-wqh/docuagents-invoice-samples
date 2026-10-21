@@ -1717,6 +1717,13 @@ def check_fixtures(out_dir: Path, reference_manifest: Path) -> Dict[str, Any]:
 
     Returns ``{"ok", "failures", "checks", "counts"}``.  The reference
     manifest and the reference files are the only baseline.
+
+    ``reports/legibility_review.json`` is a frozen record, not a generated
+    artifact.  The reference manifest must match the reference file, and the
+    record must be internally consistent: a pending record leaves the
+    reviewer and the time empty, and a confirmed record names both.  A newly
+    generated candidate writes the record as pending, so the candidate copy
+    is never compared byte for byte with a signed reference.
     """
     from . import generate
 
@@ -1725,6 +1732,7 @@ def check_fixtures(out_dir: Path, reference_manifest: Path) -> Dict[str, Any]:
     reference_dir = reference_manifest.parent
     failures: List[str] = []
     counts = {"missing": 0, "extra": 0, "generated_total": 0, "generated_compared": 0,
+              "frozen_total": 0, "frozen_verified": 0,
               "semantic_compared": 0, "pdf_pixel_compared": 0, "image_pixel_compared": 0}
     checks: Dict[str, Any] = {}
 
@@ -1765,6 +1773,36 @@ def check_fixtures(out_dir: Path, reference_manifest: Path) -> Dict[str, Any]:
         if entry["artifact_role"] == "runtime_report":
             if not candidate_file.is_file():
                 failures.append(f"{rel}: the fixture run report is missing")
+            continue
+        if entry["artifact_role"] == "frozen_review":
+            counts["frozen_total"] += 1
+            data = reference_file.read_bytes()
+            if hashlib.sha256(data).hexdigest() != entry["sha256"]:
+                failures.append(f"{rel}: the reference manifest does not match the frozen record")
+                continue
+            if len(data) != entry.get("bytes"):
+                failures.append(f"{rel}: the frozen record byte count is stale")
+                continue
+            try:
+                record = json.loads(data.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                failures.append(f"{rel}: the frozen record is not readable JSON")
+                continue
+            status = record.get("status")
+            if status == "pending_human_confirmation":
+                if record.get("reviewer") is not None or record.get("reviewed_at") is not None:
+                    failures.append(
+                        f"{rel}: a pending record must leave reviewer and reviewed_at empty"
+                    )
+                    continue
+            elif status == "confirmed":
+                if not record.get("reviewer") or not record.get("reviewed_at"):
+                    failures.append(f"{rel}: a confirmed record must name the reviewer and the time")
+                    continue
+            else:
+                failures.append(f"{rel}: the status {status!r} is not supported")
+                continue
+            counts["frozen_verified"] += 1
             continue
         counts["generated_total"] += 1
         if hashlib.sha256(reference_file.read_bytes()).hexdigest() != entry["sha256"]:

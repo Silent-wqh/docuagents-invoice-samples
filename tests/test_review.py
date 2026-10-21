@@ -116,9 +116,9 @@ def test_the_source_digest_covers_the_review_module() -> None:
 
 def test_the_lock_binds_every_source_and_gold_record() -> None:
     lock = load(DATASET / review.LOCK_NAME)
-    assert lock["status"] == "pending_human_confirmation"
-    assert lock["reviewed_by"] is None
-    assert lock["reviewed_at"] is None
+    assert lock["status"] == "confirmed"
+    assert lock["reviewed_by"] == "王庆昊 (Project Owner)"
+    assert lock["reviewed_at"] == "2026-10-21T06:14:20Z"
     assert [entry["doc_id"] for entry in lock["entries"]] == [row.doc_id for row in matrix.ROWS]
     for entry in lock["entries"]:
         document = DATASET / entry["file"]["path"]
@@ -127,7 +127,7 @@ def test_the_lock_binds_every_source_and_gold_record() -> None:
         assert entry["file"]["bytes"] == document.stat().st_size
         assert entry["gold"]["sha256"] == sha256_bytes(gold_path.read_bytes())
         assert entry["gold"]["bytes"] == gold_path.stat().st_size
-        assert entry["annotation_status"] == "pending_human_confirmation"
+        assert entry["annotation_status"] == "confirmed"
         assert entry["readability"]["verified"] is False
 
 
@@ -178,11 +178,27 @@ def test_the_lock_detects_a_changed_gold_record(tmp_path: Path) -> None:
     assert any("not bound to the final gold record" in item for item in result["failures"])
 
 
-def test_two_lock_builds_are_byte_identical() -> None:
+def test_two_lock_builds_are_byte_identical_and_the_signature_is_the_only_difference() -> None:
     first = review.lock_bytes(review.build_annotation_lock(DATASET))
     second = review.lock_bytes(review.build_annotation_lock(DATASET))
     assert first == second
-    assert first == (DATASET / review.LOCK_NAME).read_bytes()
+    built = json.loads(first)
+    stored = load(DATASET / review.LOCK_NAME)
+    assert built["status"] == "pending_human_confirmation"
+    assert stored["status"] == "confirmed"
+    assert stored["reviewed_by"] == "王庆昊 (Project Owner)"
+    assert stored["reviewed_at"] == "2026-10-21T06:14:20Z"
+
+    def unsigned(document: Mapping[str, Any]) -> Dict[str, Any]:
+        copy = json.loads(json.dumps(document))
+        copy["status"] = "pending_human_confirmation"
+        copy["reviewed_by"] = None
+        copy["reviewed_at"] = None
+        for entry in copy["entries"]:
+            entry["annotation_status"] = "pending_human_confirmation"
+        return copy
+
+    assert unsigned(stored) == built
 
 
 # ---------------------------------------------------------------------------
@@ -230,14 +246,19 @@ def test_the_review_covers_the_fixtures_and_the_unreadable_case() -> None:
     assert gold["acceptance_policy"]["decisions"] == ["UNREADABLE_FIELD"]
 
 
-def test_the_review_records_zero_disputes_and_stays_pending() -> None:
+def test_the_review_records_zero_disputes_and_is_signed() -> None:
     report = load(DATASET / review.REVIEW_NAME)
     assert report["differences"] == []
     assert report["disputes"] == []
-    assert report["status"] == "pending_human_confirmation"
+    assert report["status"] == "confirmed"
     assert report["reviewer"] == "Project Owner"
-    assert report["reviewed_by"] is None
-    assert report["reviewed_at"] is None
+    assert report["reviewed_by"] == "王庆昊 (Project Owner)"
+    assert report["reviewed_at"] == "2026-10-21T06:14:20Z"
+    assert report["manual_check_items_status"] == "confirmed"
+    assert all(item["status"] == "confirmed" for item in report["manual_check_items"])
+    assert report["t15_carryover"]["status"] == "confirmed"
+    assert report["fixtures"]["legibility_review"]["status"] == "confirmed"
+    assert report["fixtures"]["legibility_review"]["reviewer"] == "王庆昊 (Project Owner)"
     assert report["machine_precheck"]["differences"] == []
     assert report["annotation_lock"]["sha256"] == sha256_bytes(
         (DATASET / review.LOCK_NAME).read_bytes()
@@ -254,10 +275,10 @@ def test_the_review_carries_the_nine_completion_criteria() -> None:
     for item in criteria:
         assert item["criterion"]
         assert item["evidence"]
-        assert item["status"] in (
-            "PASS", "PENDING_FINAL_ACCEPTANCE_RUN", "PENDING_HUMAN_CONFIRMATION",
-        )
-    assert criteria[-1]["status"] == "PENDING_HUMAN_CONFIRMATION"
+        assert item["status"] == "PASS"
+    assert criteria[-1]["status"] == "PASS"
+    assert "docuagents-v1.0" in criteria[-1]["evidence"]
+    assert "release_record.json" in criteria[-1]["evidence"]
 
 
 def test_the_review_lists_the_manual_check_items() -> None:
@@ -279,18 +300,85 @@ def test_the_review_verifies_and_detects_drift(tmp_path: Path) -> None:
     tree = clone(tmp_path)
     lock_path = tree / review.LOCK_NAME
     lock = load(lock_path)
-    lock["status"] = "confirmed"
+    lock["status"] = "pending_human_confirmation"
     replace_bytes(lock_path, generate.canonical_bytes(lock))
     result = review.verify_annotation_review(tree)
     assert not result["ok"]
     assert any("not bound to the current annotation lock" in item for item in result["failures"])
 
 
+def test_the_review_detects_a_changed_readme(tmp_path: Path) -> None:
+    tree = clone(tmp_path)
+    readme = tree / review.README_NAME
+    replace_bytes(readme, readme.read_bytes() + b"\n")
+    result = review.verify_annotation_review(tree)
+    assert not result["ok"]
+    assert any("not bound to the current README" in item for item in result["failures"])
+
+
+def test_the_review_detects_a_pending_status_with_a_reviewer(tmp_path: Path) -> None:
+    tree = clone(tmp_path)
+    review_path = tree / review.REVIEW_NAME
+    report = load(review_path)
+    report["status"] = "pending_human_confirmation"
+    replace_bytes(review_path, generate.canonical_bytes(report))
+    result = review.verify_annotation_review(tree)
+    assert not result["ok"]
+    assert any("a pending review must leave reviewed_by and reviewed_at empty" in item
+               for item in result["failures"])
+
+
 def test_two_review_builds_are_byte_identical() -> None:
     first = review.review_bytes(review.build_annotation_review(DATASET))
     second = review.review_bytes(review.build_annotation_review(DATASET))
     assert first == second
-    assert first == (DATASET / review.REVIEW_NAME).read_bytes()
+    built = json.loads(first)
+    stored = load(DATASET / review.REVIEW_NAME)
+    assert built["status"] == "pending_human_confirmation"
+    assert stored["status"] == "confirmed"
+    # The machine part is deterministic.  The sign-off fields are the only
+    # difference between a fresh build and the frozen signed record.
+    built_machine = {key: value for key, value in built["machine_precheck"].items()
+                     if key != "manual_items"}
+    stored_machine = {key: value for key, value in stored["machine_precheck"].items()
+                      if key != "manual_items"}
+    assert stored_machine == built_machine
+    for key in ("documents", "fixtures", "differences", "disputes", "manual_checklist",
+                "completion_criteria_source", "annotation_lock", "dataset_readme"):
+        assert stored[key] == built[key], key
+
+    built_items = [(item["category"], item["doc_ids"], item["previews"])
+                   for item in built["manual_check_items"]]
+    stored_items = [(item["category"], item["doc_ids"], item["previews"])
+                    for item in stored["manual_check_items"]]
+    assert stored_items == built_items
+    assert all(item["status"] == "pending_human_confirmation" for item in built["manual_check_items"])
+    assert all(item["status"] == "confirmed" for item in stored["manual_check_items"])
+
+    built_criteria = {item["id"]: item for item in built["completion_criteria"]}
+    stored_criteria = {item["id"]: item for item in stored["completion_criteria"]}
+    for cid in ("C1", "C4", "C5", "C6", "C7"):
+        assert stored_criteria[cid] == built_criteria[cid], cid
+    for cid in built_criteria:
+        assert stored_criteria[cid]["criterion"] == built_criteria[cid]["criterion"], cid
+    assert built_criteria["C8"]["status"] == "PENDING_FINAL_ACCEPTANCE_RUN"
+    assert built_criteria["C9"]["status"] == "PENDING_HUMAN_CONFIRMATION"
+    assert stored_criteria["C8"]["status"] == "PASS"
+    assert stored_criteria["C9"]["status"] == "PASS"
+
+
+def test_the_signed_records_hold_no_pending_state() -> None:
+    for path in (
+        DATASET / review.LOCK_NAME,
+        DATASET / review.REVIEW_NAME,
+        DATASET / generate.FIXTURE_DIR_NAME / "reports" / "legibility_review.json",
+    ):
+        text = path.read_text(encoding="utf-8")
+        for phrase in (
+            "pending_human_confirmation", "an agent cannot sign", "an agent cannot confirm",
+            "does not claim a human signature", "not created by this task",
+        ):
+            assert phrase not in text, (path.name, phrase)
 
 
 def test_the_frozen_documents_hold_no_clock_or_absolute_path() -> None:
@@ -360,7 +448,9 @@ def test_the_check_accepts_the_frozen_dataset(tmp_path: Path) -> None:
     result = generate.compare_datasets(tree, DATASET)
     assert result["ok"], result["failures"][:10]
     assert result["counts"]["generated_compared"] == 142
-    assert result["counts"]["fixture_total"] == 64
+    assert result["counts"]["fixture_total"] == 63
+    assert result["counts"]["fixture_frozen_total"] == 1
+    assert result["counts"]["fixture_frozen_compared"] == 1
     assert result["counts"]["injection_total"] == 100
     assert result["counts"]["frozen_total"] == 3
     assert result["counts"]["frozen_verified"] == 3

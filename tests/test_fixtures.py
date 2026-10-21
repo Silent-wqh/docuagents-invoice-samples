@@ -670,7 +670,84 @@ def test_check_reports_the_comparison_counts(fixture_dir: Path, tmp_path: Path) 
     assert counts["missing"] == 0
     assert counts["extra"] == 0
     assert counts["generated_compared"] == counts["generated_total"]
-    assert counts["generated_total"] >= 22
+    assert counts["generated_total"] == 63
+    assert counts["frozen_total"] == 1
+    assert counts["frozen_verified"] == 1
+
+
+def _set_frozen_record(directory: Path, **changes: Any) -> None:
+    """Rewrite the fixture legibility record and its manifest entry."""
+    record_path = directory / "reports" / "legibility_review.json"
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    record.update(changes)
+    data = generate.canonical_bytes(record)
+    replace_bytes(record_path, data)
+    manifest_path = directory / "manifest.json"
+    manifest_doc = json.loads(manifest_path.read_text(encoding="utf-8"))
+    entry = next(item for item in manifest_doc["files"]
+                 if item["path"] == "reports/legibility_review.json")
+    entry["bytes"] = len(data)
+    entry["sha256"] = hashlib.sha256(data).hexdigest()
+    replace_bytes(manifest_path, generate.canonical_bytes(manifest_doc))
+
+
+def test_check_treats_the_legibility_review_as_a_frozen_record(
+    fixture_dir: Path, tmp_path: Path
+) -> None:
+    """A fresh candidate writes the record pending; a signed reference is valid."""
+    reference = tmp_path / "reference"
+    clone_tree(fixture_dir, reference)
+    _set_frozen_record(
+        reference,
+        status="confirmed",
+        reviewer="王庆昊 (Project Owner)",
+        reviewed_at="2026-10-21T06:14:20Z",
+    )
+    candidate = tmp_path / "candidate"
+    clone_tree(fixture_dir, candidate)
+    # The candidate copy is not compared byte for byte: it is a fresh pending
+    # record.  Change it to prove that the check ignores the candidate copy.
+    replace_bytes(candidate / "reports" / "legibility_review.json", b'{"changed":true}')
+    result = fixtures.check_fixtures(candidate, reference / "manifest.json")
+    assert result["ok"], result["failures"]
+    assert result["counts"]["frozen_total"] == 1
+    assert result["counts"]["frozen_verified"] == 1
+    assert result["counts"]["generated_total"] == 63
+
+
+def test_check_rejects_a_pending_record_with_a_reviewer(fixture_dir: Path, tmp_path: Path) -> None:
+    reference = tmp_path / "reference"
+    clone_tree(fixture_dir, reference)
+    _set_frozen_record(
+        reference, status="pending_human_confirmation", reviewer="Project Owner", reviewed_at=None
+    )
+    result = fixtures.check_fixtures(fixture_dir, reference / "manifest.json")
+    assert not result["ok"]
+    assert any("a pending record must leave reviewer and reviewed_at empty" in item
+               for item in result["failures"])
+
+
+def test_check_rejects_a_confirmed_record_without_a_reviewer(
+    fixture_dir: Path, tmp_path: Path
+) -> None:
+    reference = tmp_path / "reference"
+    clone_tree(fixture_dir, reference)
+    _set_frozen_record(reference, status="confirmed", reviewer=None, reviewed_at=None)
+    result = fixtures.check_fixtures(fixture_dir, reference / "manifest.json")
+    assert not result["ok"]
+    assert any("a confirmed record must name the reviewer and the time" in item
+               for item in result["failures"])
+
+
+def test_check_rejects_a_stale_frozen_manifest_hash(fixture_dir: Path, tmp_path: Path) -> None:
+    reference = tmp_path / "reference"
+    clone_tree(fixture_dir, reference)
+    record_path = reference / "reports" / "legibility_review.json"
+    replace_bytes(record_path, record_path.read_bytes() + b"\n")
+    result = fixtures.check_fixtures(fixture_dir, reference / "manifest.json")
+    assert not result["ok"]
+    assert any("the reference manifest does not match the frozen record" in item
+               for item in result["failures"])
 
 
 # ---------------------------------------------------------------------------
