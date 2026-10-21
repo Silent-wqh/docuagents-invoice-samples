@@ -1,0 +1,825 @@
+{
+  "$defs": {
+    "BBoxPrecision": {
+      "enum": [
+        "exact",
+        "approximate",
+        "unavailable"
+      ],
+      "title": "BBoxPrecision",
+      "type": "string"
+    },
+    "CurrencyEvidence": {
+      "enum": [
+        "explicit",
+        "missing",
+        "ambiguous",
+        "conflicting"
+      ],
+      "title": "CurrencyEvidence",
+      "type": "string"
+    },
+    "DocumentType": {
+      "enum": [
+        "invoice",
+        "purchase_order",
+        "credit_note",
+        "other",
+        "unknown"
+      ],
+      "title": "DocumentType",
+      "type": "string"
+    },
+    "EvidenceContextBinding": {
+      "enum": [
+        "unique",
+        "ambiguous",
+        "unverified"
+      ],
+      "title": "EvidenceContextBinding",
+      "type": "string"
+    },
+    "EvidenceSegment": {
+      "additionalProperties": false,
+      "description": "One ordered text segment of a located value.",
+      "properties": {
+        "page": {
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "span_reference": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Span Reference"
+        },
+        "bbox_pt": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bbox Pt"
+        }
+      },
+      "required": [
+        "page",
+        "text"
+      ],
+      "title": "EvidenceSegment",
+      "type": "object"
+    },
+    "EvidenceStatus": {
+      "enum": [
+        "observed",
+        "not_found",
+        "unreadable",
+        "ambiguous"
+      ],
+      "title": "EvidenceStatus",
+      "type": "string"
+    },
+    "EvidenceVerification": {
+      "enum": [
+        "model_cited",
+        "page_located",
+        "text_verified",
+        "human_verified"
+      ],
+      "title": "EvidenceVerification",
+      "type": "string"
+    },
+    "Extras": {
+      "additionalProperties": false,
+      "description": "Out-of-invoice fields kept for audit and review.",
+      "properties": {
+        "po_number": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Po Number"
+        },
+        "due_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Due Date"
+        }
+      },
+      "title": "Extras",
+      "type": "object"
+    },
+    "FieldEvidence": {
+      "additionalProperties": false,
+      "description": "Evidence record for one extracted field (§6.4).",
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/EvidenceStatus"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        },
+        "source_reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "searched_pages": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "title": "Searched Pages",
+          "type": "array"
+        },
+        "bbox_pt": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bbox Pt"
+        },
+        "bbox_precision": {
+          "$ref": "#/$defs/BBoxPrecision",
+          "default": "unavailable"
+        },
+        "verification": {
+          "$ref": "#/$defs/EvidenceVerification"
+        },
+        "context_binding": {
+          "$ref": "#/$defs/EvidenceContextBinding"
+        },
+        "verification_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verification Reason"
+        },
+        "segments": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/EvidenceSegment"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Segments"
+        }
+      },
+      "required": [
+        "status",
+        "verification",
+        "context_binding"
+      ],
+      "title": "FieldEvidence",
+      "type": "object"
+    },
+    "InvoiceRecord": {
+      "additionalProperties": false,
+      "description": "Invoice fields only. Contains no document id, run state or row ids.",
+      "properties": {
+        "invoice_number": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Invoice Number"
+        },
+        "invoice_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Invoice Date"
+        },
+        "vendor_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Vendor Name"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/LineItem"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "subtotal": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "pattern": "^[+-]?(?:\\d{1,18}(?:\\.\\d{0,12})?|\\.\\d{1,12})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subtotal"
+        },
+        "tax_amount": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "pattern": "^[+-]?(?:\\d{1,18}(?:\\.\\d{0,12})?|\\.\\d{1,12})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tax Amount"
+        },
+        "invoice_total": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "pattern": "^[+-]?(?:\\d{1,18}(?:\\.\\d{0,12})?|\\.\\d{1,12})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Invoice Total"
+        }
+      },
+      "title": "InvoiceRecord",
+      "type": "object"
+    },
+    "Issue": {
+      "enum": [
+        "LINE_AMOUNT_MISMATCH",
+        "SUBTOTAL_MISMATCH",
+        "TOTAL_MISMATCH",
+        "MISSING_REQUIRED_FIELD",
+        "INVALID_NUMBER",
+        "AMBIGUOUS_DATE",
+        "CURRENCY_UNCONFIRMED",
+        "UNREADABLE_FIELD",
+        "SCOPE_UNKNOWN",
+        "EVIDENCE_INSUFFICIENT",
+        "EVIDENCE_MISMATCH",
+        "STRUCTURE_UNCERTAIN",
+        "OUT_OF_SCOPE"
+      ],
+      "title": "Issue",
+      "type": "string"
+    },
+    "Language": {
+      "enum": [
+        "en",
+        "other",
+        "unknown"
+      ],
+      "title": "Language",
+      "type": "string"
+    },
+    "LineItem": {
+      "additionalProperties": false,
+      "description": "One invoice line item.\n\nFields hold parsed values. Raw text lives in ``ExtractionEnvelope``.",
+      "properties": {
+        "item_description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Item Description"
+        },
+        "quantity": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "pattern": "^[+-]?(?:\\d{1,18}(?:\\.\\d{0,12})?|\\.\\d{1,12})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quantity"
+        },
+        "unit_price": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "pattern": "^[+-]?(?:\\d{1,18}(?:\\.\\d{0,12})?|\\.\\d{1,12})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Price"
+        },
+        "line_net_amount": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "pattern": "^[+-]?(?:\\d{1,18}(?:\\.\\d{0,12})?|\\.\\d{1,12})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Line Net Amount"
+        }
+      },
+      "title": "LineItem",
+      "type": "object"
+    },
+    "Presence": {
+      "enum": [
+        "present",
+        "absent",
+        "unknown"
+      ],
+      "title": "Presence",
+      "type": "string"
+    },
+    "RowReference": {
+      "additionalProperties": false,
+      "description": "Line-item row identity and its evidence keys.",
+      "properties": {
+        "item_index": {
+          "minimum": 0,
+          "title": "Item Index",
+          "type": "integer"
+        },
+        "row_id": {
+          "title": "Row Id",
+          "type": "string"
+        },
+        "page_id": {
+          "title": "Page Id",
+          "type": "string"
+        },
+        "source_row_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Row Id"
+        },
+        "field_evidence_keys": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Field Evidence Keys",
+          "type": "array"
+        }
+      },
+      "required": [
+        "item_index",
+        "row_id",
+        "page_id"
+      ],
+      "title": "RowReference",
+      "type": "object"
+    },
+    "ScopeReason": {
+      "enum": [
+        "PURCHASE_ORDER",
+        "CREDIT_NOTE",
+        "UNSUPPORTED_DOCUMENT_TYPE",
+        "MULTIPLE_INVOICES",
+        "NON_ENGLISH",
+        "NON_USD_CURRENCY",
+        "HAS_DISCOUNT",
+        "HAS_EXTRA_CHARGES",
+        "TAX_INCLUSIVE",
+        "PREPAYMENT_OR_PRIOR_BALANCE",
+        "UNSUPPORTED_TAX_LAYOUT",
+        "UNSUPPORTED_PRICING",
+        "UNSUPPORTED_NUMERIC_POLICY",
+        "TABLE_SPANS_PAGES",
+        "TOO_MANY_PAGES",
+        "TOO_MANY_LINES"
+      ],
+      "title": "ScopeReason",
+      "type": "string"
+    },
+    "ScopeSignals": {
+      "additionalProperties": false,
+      "description": "Scope signals observed at Stage 1. Each signal can express unknown.",
+      "properties": {
+        "document_type": {
+          "$ref": "#/$defs/DocumentType",
+          "default": "unknown"
+        },
+        "invoice_count": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "const": "unknown",
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Invoice Count"
+        },
+        "language": {
+          "$ref": "#/$defs/Language",
+          "default": "unknown"
+        },
+        "currency_evidence": {
+          "$ref": "#/$defs/CurrencyEvidence",
+          "default": "missing"
+        },
+        "unit_price_basis": {
+          "$ref": "#/$defs/UnitPriceBasis",
+          "default": "unknown"
+        },
+        "discount": {
+          "$ref": "#/$defs/Presence",
+          "default": "unknown"
+        },
+        "additional_charges": {
+          "$ref": "#/$defs/Presence",
+          "default": "unknown"
+        },
+        "prepayment_or_prior_balance": {
+          "$ref": "#/$defs/Presence",
+          "default": "unknown"
+        },
+        "tax_presentation": {
+          "$ref": "#/$defs/TaxPresentation",
+          "default": "unknown"
+        },
+        "table_layout": {
+          "$ref": "#/$defs/TableLayout",
+          "default": "unknown"
+        },
+        "observed_row_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "const": "unknown",
+              "type": "string"
+            }
+          ],
+          "default": "unknown",
+          "title": "Observed Row Count"
+        },
+        "table_pages": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "title": "Table Pages",
+          "type": "array"
+        }
+      },
+      "title": "ScopeSignals",
+      "type": "object"
+    },
+    "ScopeStatus": {
+      "enum": [
+        "SUPPORTED",
+        "UNSUPPORTED",
+        "UNKNOWN"
+      ],
+      "title": "ScopeStatus",
+      "type": "string"
+    },
+    "SourceReference": {
+      "additionalProperties": false,
+      "description": "Reference to the source resource that supports a value.",
+      "properties": {
+        "document_id": {
+          "title": "Document Id",
+          "type": "string"
+        },
+        "page_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Id"
+        },
+        "resource_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resource Sha256"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "document_id"
+      ],
+      "title": "SourceReference",
+      "type": "object"
+    },
+    "TableLayout": {
+      "enum": [
+        "single_page",
+        "spans_pages",
+        "unknown"
+      ],
+      "title": "TableLayout",
+      "type": "string"
+    },
+    "TaxPresentation": {
+      "enum": [
+        "single",
+        "explicit_total",
+        "missing",
+        "multiple_without_total",
+        "unknown"
+      ],
+      "title": "TaxPresentation",
+      "type": "string"
+    },
+    "Uncertainty": {
+      "additionalProperties": false,
+      "description": "A recorded uncertainty, keyed by an issue code.",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/Issue"
+        },
+        "fields": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fields",
+          "type": "array"
+        },
+        "explanation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Explanation"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "title": "Uncertainty",
+      "type": "object"
+    },
+    "UnitPriceBasis": {
+      "enum": [
+        "pre_tax",
+        "tax_inclusive",
+        "unknown"
+      ],
+      "title": "UnitPriceBasis",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Versioned extraction result shared by every later stage.",
+  "properties": {
+    "schema_version": {
+      "const": "1.1",
+      "default": "1.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "document_id": {
+      "title": "Document Id",
+      "type": "string"
+    },
+    "invoice": {
+      "$ref": "#/$defs/InvoiceRecord"
+    },
+    "raw_fields": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Raw Fields",
+      "type": "object"
+    },
+    "scope_status": {
+      "$ref": "#/$defs/ScopeStatus"
+    },
+    "scope_signals": {
+      "$ref": "#/$defs/ScopeSignals"
+    },
+    "out_of_scope_reasons": {
+      "items": {
+        "$ref": "#/$defs/ScopeReason"
+      },
+      "title": "Out Of Scope Reasons",
+      "type": "array"
+    },
+    "evidence": {
+      "additionalProperties": {
+        "$ref": "#/$defs/FieldEvidence"
+      },
+      "title": "Evidence",
+      "type": "object"
+    },
+    "row_references": {
+      "items": {
+        "$ref": "#/$defs/RowReference"
+      },
+      "title": "Row References",
+      "type": "array"
+    },
+    "uncertainties": {
+      "items": {
+        "$ref": "#/$defs/Uncertainty"
+      },
+      "title": "Uncertainties",
+      "type": "array"
+    },
+    "extras": {
+      "$ref": "#/$defs/Extras"
+    }
+  },
+  "required": [
+    "document_id",
+    "invoice",
+    "scope_status"
+  ],
+  "title": "ExtractionEnvelope",
+  "type": "object"
+}

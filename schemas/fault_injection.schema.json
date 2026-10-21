@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docuagents.example/schemas/fault_injection.schema.json",
+  "title": "DocuAgentS fault injection envelope (schema_version 1)",
+  "description": "One synthetic first-candidate fault case for one class-A gold record. The evaluation side reads this file; the candidate file it names is a runtime ExtractionEnvelope with neutral names. The four expected_behavior keys follow the design §8.7 boundary: a scalar misread can be patched and re-verified, a structure change goes to a human review, and a tax amount that was not read can be found again in the original document.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "suite",
+    "synthetic_fault",
+    "case_id",
+    "base_doc_id",
+    "group_id",
+    "split",
+    "document_sha256",
+    "gold_sha256",
+    "injected",
+    "initial_candidate_file",
+    "candidate_id",
+    "runtime_input_policy",
+    "expected_behavior",
+    "sealed_for_final_evaluation",
+    "sealed_note",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "description": "Evaluation envelope version. An integer, unrelated to the runtime envelope version."
+    },
+    "suite": {
+      "const": "fault_injection"
+    },
+    "synthetic_fault": {
+      "const": true
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^da-[a-z0-9]+-[a-z0-9]+(-[a-z0-9]+)?__[a-z_]+$"
+    },
+    "base_doc_id": {
+      "type": "string",
+      "pattern": "^da-[a-z0-9]+-[a-z0-9]+(-[a-z0-9]+)?$"
+    },
+    "group_id": {
+      "type": "string",
+      "pattern": "^source:da-"
+    },
+    "split": {
+      "enum": ["dev", "test"]
+    },
+    "document_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "gold_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "injected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fault_type", "operation", "path", "original", "injected"],
+      "properties": {
+        "fault_type": {
+          "enum": [
+            "unit_decimal_shift",
+            "line_digit_transpose",
+            "missing_row",
+            "duplicate_row",
+            "tax_null"
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "original": {
+          "type": ["string", "null"]
+        },
+        "injected": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "initial_candidate_file": {
+      "type": "string",
+      "pattern": "^candidates/inj-[0-9]{4}\\.json$",
+      "description": "Safe relative path inside fault_injection/. The file name and the document_id inside it carry no class, fault or routing meaning."
+    },
+    "candidate_id": {
+      "type": "string",
+      "pattern": "^inj-[0-9]{4}$"
+    },
+    "runtime_input_policy": {
+      "const": "candidate_and_original_document_only"
+    },
+    "expected_behavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repairable",
+        "expected_route",
+        "requires_human_review",
+        "must_not_auto_accept"
+      ],
+      "properties": {
+        "repairable": {
+          "type": "boolean"
+        },
+        "expected_route": {
+          "enum": ["patch_and_reverify", "human_review"]
+        },
+        "requires_human_review": {
+          "type": "boolean"
+        },
+        "must_not_auto_accept": {
+          "type": "boolean"
+        }
+      }
+    },
+    "sealed_for_final_evaluation": {
+      "type": "boolean",
+      "description": "True for a test-derived case. A sealed case is used only for the final evaluation, never for development or tuning."
+    },
+    "sealed_note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
