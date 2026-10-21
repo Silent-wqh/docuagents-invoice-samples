@@ -1,0 +1,9 @@
+{
+  "case_id": "half-cent-1x0.125",
+  "coverage": "object_level",
+  "quantity": "1",
+  "unit_price": "0.125",
+  "expected_line_amount": "0.13",
+  "rounding": "ROUND_HALF_UP",
+  "note": "1 x 0.125 = 0.125 exactly, a true tie. Quantize to the cent, half up, gives 0.13. This case discriminates half-up from half-even: half-even would keep the even cent and give 0.12. Object-level case."
+}

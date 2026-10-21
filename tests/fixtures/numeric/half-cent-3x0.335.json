@@ -1,0 +1,9 @@
+{
+  "case_id": "half-cent-3x0.335",
+  "coverage": "object_level",
+  "quantity": "3",
+  "unit_price": "0.335",
+  "expected_line_amount": "1.01",
+  "rounding": "ROUND_HALF_UP",
+  "note": "3 x 0.335 = 1.005 exactly. Quantize to the cent, half up, gives 1.01. By hand: the digit after the cent is 5, so the cent rounds up. Object-level case: no file is rendered and this case is not part of the file-level fixture counts."
+}

@@ -1,0 +1,9 @@
+{
+  "case_id": "half-cent-1.5x0.125",
+  "coverage": "object_level",
+  "quantity": "1.5",
+  "unit_price": "0.125",
+  "expected_line_amount": "0.19",
+  "rounding": "ROUND_HALF_UP",
+  "note": "1.5 x 0.125 = 0.1875 exactly. Quantize to the cent, half up, gives 0.19 because the digit after the cent is 7, which is above 5. By hand: 0.1875 -> 0.19. Object-level case: the printed unit price of this document would show two decimals, so the file-level document cannot carry the third decimal."
+}
