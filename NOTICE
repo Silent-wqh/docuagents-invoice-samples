@@ -32,6 +32,13 @@ Additions in this fork (new material only)
   This grant covers only new DocuAgentS data. It does not apply to the
   upstream `corpus/` or `examples/`, which stay under the upstream CC BY 4.0
   terms and attribution above.
+* T17 data-gate files — `datasets/docuagents_v1/annotations.lock.json`,
+  `datasets/docuagents_v1/reports/annotation_review.json` and
+  `datasets/docuagents_v1/README.md`: new DocuAgentS data under the CC BY 4.0
+  grant above. They describe the frozen set and they copy no upstream
+  document text.
+* The T17 review code — `docuagents_gen/review.py` and
+  `tests/test_review.py`: new code under the MIT grant above.
 
 Third-party dependencies
 ------------------------
